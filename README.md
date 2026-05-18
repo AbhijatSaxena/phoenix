@@ -2,4 +2,4 @@
 
 Personal finance management app.
 
-**https://phoenix-mgmt.web.app**
+<a href="https://phoenix-mgmt.web.app" target="_blank">https://phoenix-mgmt.web.app</a>
