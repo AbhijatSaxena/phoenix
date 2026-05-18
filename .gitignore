@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment — contains Firebase credentials
+.env
+.env.local
+.env.*.local
+
+# Firebase local state
+.firebase/
+
+# Excel file — contains PII data
+*.xlsm
+*.xlsx
+*.xls
+
+# Local Claude Code working files
+.claude/
+CLAUDE.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
