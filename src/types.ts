@@ -86,6 +86,13 @@ export interface Todo {
   done: boolean
 }
 
+export interface TodoComment {
+  id: string
+  text: string
+  authorName: string
+  createdAt: number  // epoch ms
+}
+
 // ─── Zerodha ─────────────────────────────────────────────────────────────────
 
 export interface ZerodhaConfig {

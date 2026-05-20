@@ -201,4 +201,22 @@ export async function deleteTodo(id: string) {
   await deleteDoc(doc(db, 'todos', id))
 }
 
+// ─── Todo Comments ────────────────────────────────────────────────────────────
+
+export async function fetchComments(todoId: string) {
+  const snap = await getDocs(
+    query(collection(db, 'todos', todoId, 'comments'), orderBy('createdAt'))
+  )
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+export async function addComment(todoId: string, comment: { text: string; authorName: string; createdAt: number }) {
+  const ref = await addDoc(collection(db, 'todos', todoId, 'comments'), comment)
+  return ref.id
+}
+
+export async function deleteComment(todoId: string, commentId: string) {
+  await deleteDoc(doc(db, 'todos', todoId, 'comments', commentId))
+}
+
 export { Timestamp }

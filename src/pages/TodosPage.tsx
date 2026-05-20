@@ -19,16 +19,18 @@ import { useTodoStore } from '../store/todoStore'
 import type { Todo } from '../types'
 import { useIsReadOnly } from '../store/authStore'
 import Spinner from '../components/Spinner'
+import TodoCommentPanel from '../components/TodoCommentPanel'
 
 interface RowProps {
   todo: Todo
   onToggle: (todo: Todo) => void
   onEdit: (todo: Todo, text: string) => void
   onDelete: (id: string) => void
+  onComment: (todo: Todo) => void
   isReadOnly: boolean
 }
 
-function SortableRow({ todo, onToggle, onEdit, onDelete, isReadOnly }: RowProps) {
+function SortableRow({ todo, onToggle, onEdit, onDelete, onComment, isReadOnly }: RowProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: todo.id })
 
@@ -107,6 +109,17 @@ function SortableRow({ todo, onToggle, onEdit, onDelete, isReadOnly }: RowProps)
         </span>
       )}
 
+      {/* Comment icon */}
+      <button
+        onClick={() => onComment(todo)}
+        className="text-gray-700 hover:text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+        title="Comments"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+        </svg>
+      </button>
+
       {/* Delete */}
       {!isReadOnly && (
         <button
@@ -124,6 +137,7 @@ export default function TodosPage() {
   const { todos, loading, load, add, update, remove, reorder } = useTodoStore()
   const isReadOnly = useIsReadOnly()
   const [newText, setNewText] = useState('')
+  const [commentTodo, setCommentTodo] = useState<Todo | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
@@ -156,6 +170,9 @@ export default function TodosPage() {
 
   return (
     <div className="space-y-6 max-w-2xl">
+      {commentTodo && (
+        <TodoCommentPanel todo={commentTodo} onClose={() => setCommentTodo(null)} />
+      )}
       <h1 className="text-xl font-bold text-white">Todos</h1>
 
       {/* Add input */}
@@ -189,6 +206,7 @@ export default function TodosPage() {
                   onToggle={t => update({ ...t, done: !t.done })}
                   onEdit={(t, text) => update({ ...t, text })}
                   onDelete={remove}
+                  onComment={setCommentTodo}
                 />
               ))}
             </SortableContext>
@@ -209,6 +227,7 @@ export default function TodosPage() {
                 onToggle={t => update({ ...t, done: !t.done })}
                 onEdit={(t, text) => update({ ...t, text })}
                 onDelete={remove}
+                onComment={setCommentTodo}
               />
             ))}
           </div>
