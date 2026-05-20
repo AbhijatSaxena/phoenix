@@ -31,7 +31,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
       <div className="card w-full max-w-sm">
-        <h1 className="text-xl font-bold text-white mb-1">Personal Finance</h1>
+        <h1 className="text-xl font-bold text-white mb-1">Personal Management</h1>
         <p className="text-gray-500 text-sm mb-6">Sign in to continue</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>

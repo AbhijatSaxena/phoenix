@@ -22,7 +22,7 @@ export default function Layout() {
       {/* ── Sidebar (desktop only) ───────────────────────────────────────── */}
       <aside className="hidden md:flex w-52 shrink-0 bg-gray-900 border-r border-gray-800 flex-col">
         <div className="px-5 py-5 border-b border-gray-800">
-          <h1 className="text-base font-bold text-white tracking-tight">Personal Finance</h1>
+          <h1 className="text-base font-bold text-white tracking-tight">Personal Management</h1>
           {rates ? (
             <p className="text-[11px] text-gray-500 mt-1">USD {rates.usdInr} · CAD {rates.cadInr}</p>
           ) : (
@@ -70,7 +70,7 @@ export default function Layout() {
         {/* Mobile header */}
         <div className="flex items-center justify-between mb-4 md:hidden">
           <div>
-            <h1 className="text-sm font-bold text-white">Personal Finance</h1>
+            <h1 className="text-sm font-bold text-white">Personal Management</h1>
             {rates ? (
               <p className="text-[10px] text-gray-500">USD {rates.usdInr} · CAD {rates.cadInr}</p>
             ) : null}
