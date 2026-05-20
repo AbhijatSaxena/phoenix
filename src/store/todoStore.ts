@@ -11,6 +11,7 @@ interface TodoState {
   remove: (id: string) => Promise<void>
   reorder: (todos: Todo[]) => Promise<void>
   bumpCommentCount: (id: string, delta: 1 | -1) => void
+  setCommentCount: (id: string, count: number) => void
 }
 
 function newId() {
@@ -56,6 +57,12 @@ export const useTodoStore = create<TodoState>((set, get) => ({
       todos: state.todos.map(t =>
         t.id === id ? { ...t, commentCount: Math.max(0, (t.commentCount ?? 0) + delta) } : t
       ),
+    }))
+  },
+
+  setCommentCount: (id: string, count: number) => {
+    set(state => ({
+      todos: state.todos.map(t => t.id === id ? { ...t, commentCount: count } : t),
     }))
   },
 }))
