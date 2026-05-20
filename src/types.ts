@@ -84,6 +84,7 @@ export interface Todo {
   text: string
   order: number
   done: boolean
+  commentCount?: number
 }
 
 export interface TodoComment {

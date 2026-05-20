@@ -8,6 +8,8 @@ import {
   setDoc,
   deleteDoc,
   addDoc,
+  updateDoc,
+  increment,
   query,
   orderBy,
   enableIndexedDbPersistence,
@@ -217,6 +219,10 @@ export async function addComment(todoId: string, comment: { text: string; author
 
 export async function deleteComment(todoId: string, commentId: string) {
   await deleteDoc(doc(db, 'todos', todoId, 'comments', commentId))
+}
+
+export async function bumpCommentCount(todoId: string, delta: 1 | -1) {
+  await updateDoc(doc(db, 'todos', todoId), { commentCount: increment(delta) })
 }
 
 export { Timestamp }
