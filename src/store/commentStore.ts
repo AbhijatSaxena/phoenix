@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { TodoComment } from '../types'
-import { fetchComments, addComment, deleteComment, bumpCommentCount, auth } from '../services/firebase'
+import { fetchComments, addComment, deleteComment, bumpCommentCount, setCommentCount, auth } from '../services/firebase'
 import { useTodoStore } from './todoStore'
 
 interface CommentState {
@@ -21,6 +21,13 @@ export const useCommentStore = create<CommentState>((set, get) => ({
     set({ loading: true, todoId, comments: [] })
     const comments = await fetchComments(todoId) as TodoComment[]
     set({ comments, loading: false })
+    // Sync actual count — fixes existing todos that predate the commentCount field
+    const actual = comments.length
+    const stored = useTodoStore.getState().todos.find(t => t.id === todoId)?.commentCount ?? 0
+    if (stored !== actual) {
+      useTodoStore.getState().setCommentCount(todoId, actual)
+      await setCommentCount(todoId, actual)
+    }
   },
 
   add: async (text: string) => {

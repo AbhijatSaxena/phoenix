@@ -225,4 +225,8 @@ export async function bumpCommentCount(todoId: string, delta: 1 | -1) {
   await updateDoc(doc(db, 'todos', todoId), { commentCount: increment(delta) })
 }
 
+export async function setCommentCount(todoId: string, count: number) {
+  await updateDoc(doc(db, 'todos', todoId), { commentCount: count })
+}
+
 export { Timestamp }
