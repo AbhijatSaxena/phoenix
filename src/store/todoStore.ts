@@ -10,6 +10,7 @@ interface TodoState {
   update: (todo: Todo) => Promise<void>
   remove: (id: string) => Promise<void>
   reorder: (todos: Todo[]) => Promise<void>
+  bumpCommentCount: (id: string, delta: 1 | -1) => void
 }
 
 function newId() {
@@ -48,5 +49,13 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     const reindexed = todos.map((t, i) => ({ ...t, order: i }))
     set({ todos: reindexed })
     await Promise.all(reindexed.map(t => saveTodo(t as unknown as Record<string, unknown>)))
+  },
+
+  bumpCommentCount: (id: string, delta: 1 | -1) => {
+    set(state => ({
+      todos: state.todos.map(t =>
+        t.id === id ? { ...t, commentCount: Math.max(0, (t.commentCount ?? 0) + delta) } : t
+      ),
+    }))
   },
 }))
