@@ -36,6 +36,8 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
   const [tab, setTab] = useState<TabId>(0)
   const [commentText, setCommentText] = useState('')
   const [newBlockerText, setNewBlockerText] = useState('')
+  const [editingTitle, setEditingTitle] = useState(false)
+  const [titleDraft, setTitleDraft] = useState('')
   const { comments, loading: commentsLoading, load, add: addComment, remove: removeComment } = useCommentStore()
   const { add: addTodo, update: updateTodo, archive: archiveTodo } = useTodoStore()
   const isReadOnly = useIsReadOnly()
@@ -45,6 +47,23 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [comments.length])
+
+  function startTitleEdit() {
+    if (isReadOnly) return
+    setTitleDraft(todo.text)
+    setEditingTitle(true)
+  }
+
+  async function commitTitleEdit() {
+    const text = titleDraft.trim()
+    if (text && text !== todo.text) await updateTodo({ ...todo, text })
+    setEditingTitle(false)
+  }
+
+  function handleTitleKey(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') commitTitleEdit()
+    if (e.key === 'Escape') setEditingTitle(false)
+  }
 
   async function handleToggleDone() {
     await updateTodo({ ...todo, done: !todo.done })
@@ -103,16 +122,40 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
       {/* Header */}
       <Box sx={{ p: 2.5, borderBottom: '1px solid #1f2937' }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-          <Box sx={{ minWidth: 0 }}>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography variant="caption" sx={{ color: statusColor, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
               {statusLabel}
             </Typography>
-            <Typography
-              variant="subtitle2"
-              sx={{ mt: 0.25, color: todo.done ? 'text.disabled' : 'text.primary', textDecoration: todo.done ? 'line-through' : 'none', lineHeight: 1.4, wordBreak: 'break-word' }}
-            >
-              {todo.text}
-            </Typography>
+            {!isReadOnly && editingTitle ? (
+              <TextField
+                size="small"
+                fullWidth
+                multiline
+                value={titleDraft}
+                onChange={e => setTitleDraft(e.target.value)}
+                onBlur={commitTitleEdit}
+                onKeyDown={handleTitleKey}
+                autoFocus
+                sx={{ mt: 0.5, '& .MuiInputBase-root': { fontSize: 13 } }}
+              />
+            ) : (
+              <Typography
+                variant="subtitle2"
+                onClick={startTitleEdit}
+                sx={{
+                  mt: 0.25,
+                  color: todo.done ? 'text.disabled' : 'text.primary',
+                  textDecoration: todo.done ? 'line-through' : 'none',
+                  lineHeight: 1.4,
+                  wordBreak: 'break-word',
+                  cursor: isReadOnly ? 'default' : 'text',
+                  borderRadius: 1,
+                  '&:hover': isReadOnly ? {} : { bgcolor: 'action.hover', px: 0.5, mx: -0.5 },
+                }}
+              >
+                {todo.text}
+              </Typography>
+            )}
           </Box>
           <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary', mt: -0.5 }}>
             <CloseIcon fontSize="small" />
