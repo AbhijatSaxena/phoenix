@@ -14,13 +14,13 @@ import '@xyflow/react/dist/style.css'
 import * as dagre from '@dagrejs/dagre'
 import type { Todo } from '../types'
 
-const NODE_W = 220
-const NODE_H = 88
+const NODE_W = 240
+const NODE_H = 96
 
 function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
-  g.setGraph({ rankdir: 'LR', ranksep: 90, nodesep: 50 })
+  g.setGraph({ rankdir: 'TB', ranksep: 80, nodesep: 50 })
   nodes.forEach(n => g.setNode(n.id, { width: NODE_W, height: NODE_H }))
   edges.forEach(e => g.setEdge(e.source, e.target))
   dagre.layout(g)
@@ -42,73 +42,117 @@ function TodoNode({ data }: NodeProps) {
   const { todo, blocked, onToggle, onComment, onManageDeps } = data as NodeData
   const status = todo.done ? 'done' : blocked ? 'blocked' : 'available'
 
+  const borderColor =
+    status === 'done'      ? '#374151' :
+    status === 'blocked'   ? '#7f1d1d' :
+                             '#1d4ed8'
+
+  const bgColor =
+    status === 'done'      ? '#111827' :
+    status === 'blocked'   ? '#0f0a0a' :
+                             '#0f172a'
+
   return (
     <div
-      style={{ width: NODE_W, minHeight: NODE_H }}
-      className={`rounded-lg border p-3 flex flex-col gap-2 cursor-default select-none
-        ${status === 'done'      ? 'bg-gray-800/50 border-gray-700/60'    : ''}
-        ${status === 'blocked'   ? 'bg-gray-950 border-red-900/50'        : ''}
-        ${status === 'available' ? 'bg-gray-900 border-blue-500/40'       : ''}`}
+      style={{
+        width: NODE_W,
+        height: NODE_H,
+        background: bgColor,
+        border: `1.5px solid ${borderColor}`,
+        borderRadius: 10,
+        borderLeft: `4px solid ${status === 'done' ? '#374151' : status === 'blocked' ? '#dc2626' : '#3b82f6'}`,
+        opacity: status === 'done' ? 0.6 : 1,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '10px 12px',
+        boxShadow: status === 'available' ? '0 0 0 1px rgba(59,130,246,0.15)' : 'none',
+      }}
     >
-      <Handle type="target" position={Position.Left} style={{ background: '#4b5563', width: 8, height: 8 }} />
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: '#4b5563', width: 8, height: 8, top: -5 }}
+      />
 
-      <div className="flex items-start gap-2">
+      {/* Title row */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
         <button
           onClick={() => status !== 'blocked' && onToggle(todo)}
           title={blocked ? 'Complete dependencies first' : undefined}
-          className={`shrink-0 mt-0.5 w-4 h-4 rounded border flex items-center justify-center transition-colors
-            ${todo.done                        ? 'bg-blue-600 border-blue-600 text-white'       : ''}
-            ${blocked && !todo.done            ? 'border-gray-700 cursor-not-allowed opacity-40' : ''}
-            ${!todo.done && !blocked           ? 'border-gray-500 hover:border-gray-300'         : ''}`}
+          style={{
+            flexShrink: 0,
+            width: 16,
+            height: 16,
+            marginTop: 2,
+            borderRadius: 4,
+            border: `1.5px solid ${todo.done ? '#2563eb' : blocked ? '#374151' : '#6b7280'}`,
+            background: todo.done ? '#2563eb' : 'transparent',
+            cursor: blocked && !todo.done ? 'not-allowed' : 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: blocked && !todo.done ? 0.4 : 1,
+          }}
         >
-          {todo.done && <span className="text-[10px]">✓</span>}
+          {todo.done && <span style={{ fontSize: 9, color: '#fff', lineHeight: 1 }}>✓</span>}
         </button>
-        <span className={`flex-1 text-xs leading-snug
-          ${status === 'done'      ? 'line-through text-gray-600' : ''}
-          ${status === 'blocked'   ? 'text-gray-500'              : ''}
-          ${status === 'available' ? 'text-gray-200'              : ''}`}
-        >
+        <span style={{
+          flex: 1,
+          fontSize: 12,
+          lineHeight: 1.4,
+          color: status === 'done' ? '#6b7280' : status === 'blocked' ? '#6b7280' : '#e5e7eb',
+          textDecoration: todo.done ? 'line-through' : 'none',
+          wordBreak: 'break-word',
+        }}>
           {todo.text}
         </span>
       </div>
 
-      <div className="flex items-center justify-between mt-auto">
-        <div className="flex items-center gap-1.5">
-          <span className={`text-[10px] font-medium
-            ${status === 'done'      ? 'text-gray-600'  : ''}
-            ${status === 'blocked'   ? 'text-red-800'   : ''}
-            ${status === 'available' ? 'text-blue-500'  : ''}`}
-          >
-            {status === 'done' ? '✓ Done' : status === 'blocked' ? '🔒 Blocked' : '● Ready'}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
+      {/* Footer row */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+        <span style={{
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: '0.05em',
+          color: status === 'done' ? '#4b5563' : status === 'blocked' ? '#dc2626' : '#3b82f6',
+        }}>
+          {status === 'done' ? '✓ DONE' : status === 'blocked' ? '🔒 BLOCKED' : '● READY'}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button
             onClick={() => onManageDeps(todo)}
-            className="text-gray-700 hover:text-purple-400 transition-colors"
             title="Manage dependencies"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: '#7c3aed', opacity: 0.7 }}
           >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
             </svg>
           </button>
           <button
             onClick={() => onComment(todo)}
-            className={`flex items-center gap-0.5 transition-colors
-              ${(todo.commentCount ?? 0) > 0 ? 'text-blue-400' : 'text-gray-700 hover:text-blue-400'}`}
             title="Comments"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+              color: (todo.commentCount ?? 0) > 0 ? '#3b82f6' : '#4b5563',
+              display: 'flex', alignItems: 'center', gap: 3,
+            }}
           >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             {(todo.commentCount ?? 0) > 0 && (
-              <span className="text-[9px]">{todo.commentCount}</span>
+              <span style={{ fontSize: 9, color: '#3b82f6' }}>{todo.commentCount}</span>
             )}
           </button>
         </div>
       </div>
 
-      <Handle type="source" position={Position.Right} style={{ background: '#4b5563', width: 8, height: 8 }} />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: '#4b5563', width: 8, height: 8, bottom: -5 }}
+      />
     </div>
   )
 }
@@ -137,47 +181,39 @@ export default function TodoGraph({ todos, onToggle, onComment, onManageDeps }: 
           source: depId,
           target: todo.id,
           animated: !depDone,
-          style: { stroke: color, strokeWidth: 1.5 },
-          markerEnd: { type: MarkerType.ArrowClosed, color, width: 16, height: 16 },
+          style: { stroke: color, strokeWidth: 2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color, width: 18, height: 18 },
         }
       })
     )
-
     const rawNodes: Node[] = todos.map(todo => ({
       id: todo.id,
       type: 'todo',
       position: { x: 0, y: 0 },
       data: { todo, blocked: isBlocked(todo), onToggle, onComment, onManageDeps } as NodeData,
     }))
-
     return { nodes: layoutNodes(rawNodes, rawEdges), edges: rawEdges }
   }, [todos, onToggle, onComment, onManageDeps])
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-950 overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: 500 }}>
+    <div style={{ height: 'calc(100vh - 180px)', minHeight: 520 }}
+      className="rounded-xl border border-gray-800 bg-gray-950 overflow-hidden"
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
+        fitViewOptions={{ padding: 0.2 }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={false}
         proOptions={{ hideAttribution: true }}
         colorMode="dark"
       >
-        <Background color="#1f2937" gap={24} />
+        <Background color="#1e293b" gap={28} size={1} />
         <Controls showInteractive={false} />
       </ReactFlow>
-      {/* Legend */}
-      <div className="absolute bottom-4 right-4 flex items-center gap-4 bg-gray-900/90 border border-gray-700 rounded-lg px-3 py-2 text-[10px] text-gray-500 pointer-events-none">
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />Ready</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-900 shrink-0" />Blocked</span>
-        <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-600 shrink-0" />Done</span>
-        <span className="flex items-center gap-1.5"><span className="w-4 h-px bg-red-600" />Incomplete dep</span>
-        <span className="flex items-center gap-1.5"><span className="w-4 h-px bg-green-600" />Complete dep</span>
-      </div>
     </div>
   )
 }
