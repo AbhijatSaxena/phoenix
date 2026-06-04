@@ -1,22 +1,27 @@
 import { useEffect, useState } from 'react'
 import {
+  Box, Paper, Grid, Typography, Button, TextField, CircularProgress,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
+} from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import DeleteIcon from '@mui/icons-material/Delete'
+import {
   fetchZerodhaConfig, saveZerodhaConfig,
   fetchZerodhaEntries, upsertZerodhaEntry, deleteZerodhaEntry,
 } from '../services/firebase'
 import type { ZerodhaConfig, ZerodhaEntry } from '../types'
 import { confirm } from '../components/ConfirmDialog'
 import { fmtINR, isoToDisplay } from '../lib/fmt'
-import Spinner from '../components/Spinner'
 import { useForm } from 'react-hook-form'
 import { useIsReadOnly } from '../store/authStore'
 
 type EntryForm = Omit<ZerodhaEntry, 'id'>
 
 function netTotal(e: ZerodhaEntry) {
-  return e.equityRealized + e.equityUnrealized
-    + e.fnoRealized + e.fnoUnrealized
-    + e.commoditiesRealized + e.commoditiesUnrealized
-    + e.mfRealized + e.mfUnrealized
+  return e.equityRealized + e.equityUnrealized + e.fnoRealized + e.fnoUnrealized
+    + e.commoditiesRealized + e.commoditiesUnrealized + e.mfRealized + e.mfUnrealized
 }
 
 export default function ZerodhaPage() {
@@ -42,12 +47,11 @@ export default function ZerodhaPage() {
     load()
   }, [])
 
-  if (loading || !config) return <div className="flex items-center justify-center h-64"><Spinner /></div>
+  if (loading || !config) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}><CircularProgress /></Box>
 
-  const latest = entries.length > 0 ? entries[entries.length - 1] : null
+  const latest    = entries.length > 0 ? entries[entries.length - 1] : null
   const latestNet = latest ? netTotal(latest) : null
-  const plPct = latestNet !== null && config.capital > 0
-    ? (latestNet / config.capital) * 100 : null
+  const plPct     = latestNet !== null && config.capital > 0 ? (latestNet / config.capital) * 100 : null
 
   async function commitCapital() {
     const val = parseFloat(capitalInput)
@@ -74,8 +78,7 @@ export default function ZerodhaPage() {
       mfUnrealized:          Number(data.mfUnrealized),
     } as ZerodhaEntry
     await upsertZerodhaEntry(entry as unknown as Record<string, unknown>)
-    const updated = await fetchZerodhaEntries() as ZerodhaEntry[]
-    setEntries(updated)
+    setEntries(await fetchZerodhaEntries() as ZerodhaEntry[])
     reset()
     setShowForm(false)
     setEditingId(null)
@@ -91,10 +94,7 @@ export default function ZerodhaPage() {
 
   async function removeEntry(id: string) {
     const entry = entries.find(e => e.id === id)
-    const ok = await confirm({
-      title: 'Remove portfolio entry',
-      message: `Remove the entry dated ${entry?.date}?`,
-    })
+    const ok = await confirm({ title: 'Remove portfolio entry', message: `Remove the entry dated ${entry?.date}?` })
     if (!ok) return
     await deleteZerodhaEntry(id)
     setEntries(entries.filter(e => e.id !== id))
@@ -112,135 +112,135 @@ export default function ZerodhaPage() {
     { key: 'mfUnrealized',          label: 'MF Unrealized' },
   ]
 
+  const pnlColor = (v: number | null) => v === null ? 'text.secondary' : v >= 0 ? 'success.main' : 'error.main'
+
   return (
-    <div className="space-y-6 max-w-4xl">
-      <h1 className="text-xl font-bold text-white">Zerodha Portfolio</h1>
+    <Box sx={{ maxWidth: 900 }}>
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Zerodha Portfolio</Typography>
 
-      {/* Capital + summary */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="card">
-          <p className="label mb-1">Capital Invested</p>
-          {!isReadOnly && editCapital ? (
-            <div className="flex gap-2 mt-1">
-              <input type="number" className="input text-sm" value={capitalInput}
-                onChange={e => setCapitalInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && commitCapital()} autoFocus />
-              <button onClick={commitCapital} className="btn-primary text-xs px-2">OK</button>
-            </div>
-          ) : isReadOnly ? (
-            <p className="text-white font-semibold text-lg mt-1">₹{fmtINR(config.capital)}</p>
-          ) : (
-            <button className="text-white font-semibold text-lg hover:underline mt-1 block"
-              onClick={() => { setEditCapital(true); setCapitalInput(String(config.capital)) }}>
-              ₹{fmtINR(config.capital)}
-            </button>
-          )}
-        </div>
+      <Grid container spacing={1.5} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+            <Typography variant="overline" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>Capital Invested</Typography>
+            {!isReadOnly && editCapital ? (
+              <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                <TextField size="small" type="number" value={capitalInput} onChange={e => setCapitalInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && commitCapital()} autoFocus sx={{ flex: 1 }} />
+                <Button variant="contained" size="small" onClick={commitCapital} sx={{ minWidth: 0, px: 1.5 }}>OK</Button>
+              </Box>
+            ) : isReadOnly ? (
+              <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5 }}>₹{fmtINR(config.capital)}</Typography>
+            ) : (
+              <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                onClick={() => { setEditCapital(true); setCapitalInput(String(config.capital)) }}>
+                ₹{fmtINR(config.capital)}
+              </Typography>
+            )}
+          </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+            <Typography variant="overline" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>Latest Net P&L</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5, color: pnlColor(latestNet) }}>
+              {latestNet !== null ? `₹${fmtINR(latestNet)}` : '—'}
+            </Typography>
+          </Paper>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+            <Typography variant="overline" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>P/L %</Typography>
+            <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5, color: pnlColor(plPct) }}>
+              {plPct !== null ? `${plPct.toFixed(2)}%` : '—'}
+            </Typography>
+          </Paper>
+        </Grid>
+      </Grid>
 
-        <div className="card">
-          <p className="label mb-1">Latest Net P&L</p>
-          <p className={`font-semibold text-lg mt-1 ${latestNet !== null && latestNet >= 0 ? 'positive' : 'negative'}`}>
-            {latestNet !== null ? `₹${fmtINR(latestNet)}` : '—'}
-          </p>
-        </div>
-
-        <div className="card">
-          <p className="label mb-1">P/L %</p>
-          <p className={`font-semibold text-lg mt-1 ${plPct !== null && plPct >= 0 ? 'positive' : 'negative'}`}>
-            {plPct !== null ? `${plPct.toFixed(2)}%` : '—'}
-          </p>
-        </div>
-      </div>
-
-      {/* Add/Edit form */}
       {!isReadOnly && (
-        <div className="flex justify-end">
-          <button onClick={() => { setShowForm(v => !v); setEditingId(null); reset() }}
-            className="btn-primary text-sm">
-            {showForm ? 'Cancel' : '+ Add Entry'}
-          </button>
-        </div>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button variant="outlined" size="small" startIcon={<AddIcon />}
+            onClick={() => { setShowForm(v => !v); setEditingId(null); reset() }}>
+            {showForm ? 'Cancel' : 'Add Entry'}
+          </Button>
+        </Box>
       )}
 
-      {showForm && (
-        <div className="card">
-          <h2 className="font-semibold text-white mb-4">{editingId ? 'Edit Entry' : 'New Entry'}</h2>
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <Dialog open={showForm} onClose={() => { setShowForm(false); setEditingId(null); reset() }} maxWidth="sm" fullWidth>
+        <DialogTitle>{editingId ? 'Edit Entry' : 'New Entry'}</DialogTitle>
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <DialogContent>
+            <Grid container spacing={2}>
               {fields.map(({ key, label }) => (
-                <div key={key}>
-                  <label className="label block mb-1">{label}</label>
-                  <input
+                <Grid key={key} size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label={label}
                     type={key === 'date' ? 'date' : 'number'}
-                    step="any"
-                    className="input text-sm"
+                    slotProps={{ htmlInput: { step: 'any' }, inputLabel: key === 'date' ? { shrink: true } : {} }}
+                    size="small"
+                    fullWidth
                     {...register(key, { required: true })}
                   />
-                </div>
+                </Grid>
               ))}
-            </div>
-            <div className="flex gap-2 mt-4">
-              <button type="submit" disabled={saving} className="btn-primary flex-1">
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-              <button type="button" onClick={() => { setShowForm(false); setEditingId(null); reset() }}
-                className="btn-ghost flex-1">Cancel</button>
-            </div>
-          </form>
-        </div>
-      )}
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => { setShowForm(false); setEditingId(null); reset() }} color="inherit">Cancel</Button>
+            <Button type="submit" variant="contained" disabled={saving}>
+              {saving ? <CircularProgress size={16} color="inherit" /> : 'Save'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
 
-      {/* History table */}
-      <div className="card overflow-hidden p-0">
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[500px]">
-          <thead className="bg-gray-800">
-            <tr className="text-left">
-              <th className="px-4 py-3 label">Date</th>
-              <th className="px-4 py-3 label text-right hidden md:table-cell">Equity R</th>
-              <th className="px-4 py-3 label text-right hidden md:table-cell">Equity U</th>
-              <th className="px-4 py-3 label text-right hidden md:table-cell">F&O R</th>
-              <th className="px-4 py-3 label text-right hidden md:table-cell">Commod R</th>
-              <th className="px-4 py-3 label text-right hidden md:table-cell">MF R</th>
-              <th className="px-4 py-3 label text-right">Net Total</th>
-              <th className="px-4 py-3 label text-right">P/L%</th>
-              <th className="px-4 py-3 label"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
+      <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #1f2937' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: '#0f172a' }}>
+              <TableCell>Date</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Equity R</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Equity U</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>F&O R</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Commod R</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>MF R</TableCell>
+              <TableCell align="right">Net Total</TableCell>
+              <TableCell align="right">P/L%</TableCell>
+              <TableCell padding="checkbox" />
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {[...entries].reverse().map(e => {
               const net = netTotal(e)
               const pct = config.capital > 0 ? (net / config.capital) * 100 : 0
               return (
-                <tr key={e.id} className="hover:bg-gray-900/50">
-                  <td className="px-4 py-2.5 text-gray-300 whitespace-nowrap">{isoToDisplay(e.date)}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-400 hidden md:table-cell">₹{fmtINR(e.equityRealized)}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-400 hidden md:table-cell">₹{fmtINR(e.equityUnrealized)}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-400 hidden md:table-cell">₹{fmtINR(e.fnoRealized)}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-400 hidden md:table-cell">₹{fmtINR(e.commoditiesRealized)}</td>
-                  <td className="px-4 py-2.5 text-right text-gray-400 hidden md:table-cell">₹{fmtINR(e.mfRealized)}</td>
-                  <td className={`px-4 py-2.5 text-right font-medium ${net >= 0 ? 'positive' : 'negative'}`}>
-                    ₹{fmtINR(net)}
-                  </td>
-                  <td className={`px-4 py-2.5 text-right font-medium ${pct >= 0 ? 'positive' : 'negative'}`}>
-                    {pct.toFixed(2)}%
-                  </td>
-                  <td className="px-4 py-2.5">
+                <TableRow key={e.id} hover>
+                  <TableCell sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>{isoToDisplay(e.date)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.equityRealized)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.equityUnrealized)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.fnoRealized)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.commoditiesRealized)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.mfRealized)}</TableCell>
+                  <TableCell align="right" sx={{ color: pnlColor(net), fontWeight: 500 }}>₹{fmtINR(net)}</TableCell>
+                  <TableCell align="right" sx={{ color: pnlColor(pct), fontWeight: 500 }}>{pct.toFixed(2)}%</TableCell>
+                  <TableCell padding="checkbox">
                     {!isReadOnly && (
-                      <div className="flex gap-2">
-                        <button onClick={() => openEdit(e)} className="text-gray-600 hover:text-blue-400 text-xs">Edit</button>
-                        <button onClick={() => removeEntry(e.id)} className="text-gray-600 hover:text-red-500 text-xs">✕</button>
-                      </div>
+                      <Box sx={{ display: 'flex', gap: 0.25, opacity: 0, '.MuiTableRow-root:hover &': { opacity: 1 } }}>
+                        <IconButton size="small" onClick={() => openEdit(e)} sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' }, p: 0.5 }}>
+                          <EditOutlinedIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => removeEntry(e.id)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' }, p: 0.5 }}>
+                          <DeleteIcon sx={{ fontSize: 14 }} />
+                        </IconButton>
+                      </Box>
                     )}
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
-        </div>
-        {entries.length === 0 && <p className="text-center text-gray-600 py-8">No entries yet.</p>}
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+        {entries.length === 0 && <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', py: 4 }}>No entries yet.</Typography>}
+      </TableContainer>
+    </Box>
   )
 }

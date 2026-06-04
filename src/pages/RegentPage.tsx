@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react'
 import {
+  Box, Paper, Grid, Typography, Button, TextField, CircularProgress,
+  Divider, IconButton,
+} from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
+import {
   fetchRegentConfig, saveRegentConfig,
   fetchRegentEmis, addRegentEmi, deleteRegentEmi, updateRegentEmi,
 } from '../services/firebase'
@@ -7,8 +13,6 @@ import type { RegentConfig, RegentEmi } from '../types'
 import { confirm } from '../components/ConfirmDialog'
 import { fmtINR, isoToDisplay } from '../lib/fmt'
 import { useIsReadOnly } from '../store/authStore'
-import Tooltip from '../components/Tooltip'
-import Spinner from '../components/Spinner'
 import { useForm } from 'react-hook-form'
 
 const DEFAULT_CONFIG: RegentConfig = {
@@ -21,29 +25,59 @@ const DEFAULT_CONFIG: RegentConfig = {
   clubHouseCharges: 300000,
   principalOutstanding: 13746729,
   payments: [
-    { label: 'Down Payment 2024',     amount: 4500502 },
-    { label: 'July 2025 Bulk',        amount: 1125127 },
-    { label: 'October 2025 Bulk',     amount: 887689  },
-    { label: 'April 2026 Bulk',       amount: 687690  },
-    { label: 'Total TDS Till date',   amount: 189324  },
+    { label: 'Down Payment 2024',   amount: 4500502 },
+    { label: 'July 2025 Bulk',      amount: 1125127 },
+    { label: 'October 2025 Bulk',   amount: 887689  },
+    { label: 'April 2026 Bulk',     amount: 687690  },
+    { label: 'Total TDS Till date', amount: 189324  },
   ],
   totalTds: 189324,
 }
 
 interface EmiForm { date: string; amount: number }
 
+function EditableRow({ label, value, onCommit, isReadOnly }: { label: string; value: number; onCommit: (v: number) => void; isReadOnly: boolean }) {
+  const [editing, setEditing] = useState(false)
+  const [val, setVal] = useState('')
+
+  function start() { setVal(String(value)); setEditing(true) }
+  function commit() {
+    const n = parseFloat(val)
+    if (!isNaN(n)) onCommit(n)
+    setEditing(false)
+  }
+
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+      <Typography variant="body2" color="text.secondary">{label}</Typography>
+      {editing ? (
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <TextField size="small" type="number" value={val} onChange={e => setVal(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false) }}
+            slotProps={{ htmlInput: { style: { textAlign: 'right', width: 120 } } }} autoFocus />
+          <Button size="small" variant="contained" onClick={commit} sx={{ minWidth: 0, px: 1.5 }}>OK</Button>
+        </Box>
+      ) : isReadOnly ? (
+        <Typography variant="body2">₹{fmtINR(value)}</Typography>
+      ) : (
+        <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }} onClick={start}>
+          ₹{fmtINR(value)}
+        </Typography>
+      )}
+    </Box>
+  )
+}
+
 export default function RegentPage() {
   const [config, setConfig] = useState<RegentConfig | null>(null)
   const [emis, setEmis] = useState<RegentEmi[]>([])
   const [loading, setLoading] = useState(true)
-  const [editField, setEditField] = useState<keyof RegentConfig | null>(null)
-  const [editValue, setEditValue] = useState('')
-  const [editPaymentIndex, setEditPaymentIndex] = useState<number | null>(null)
-  const [editPaymentValue, setEditPaymentValue] = useState('')
   const [showAddEmi, setShowAddEmi] = useState(false)
   const [emiLoading, setEmiLoading] = useState(false)
   const [editEmiId, setEditEmiId] = useState<string | null>(null)
   const [editEmiValue, setEditEmiValue] = useState('')
+  const [editPaymentIndex, setEditPaymentIndex] = useState<number | null>(null)
+  const [editPaymentValue, setEditPaymentValue] = useState('')
 
   const { register: regEmi, handleSubmit: handleEmi, reset: resetEmi } = useForm<EmiForm>()
   const isReadOnly = useIsReadOnly()
@@ -58,46 +92,30 @@ export default function RegentPage() {
     load()
   }, [])
 
-  if (loading || !config) return <div className="flex items-center justify-center h-64"><Spinner /></div>
+  if (loading || !config) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}><CircularProgress /></Box>
 
-  // Derived calculations
   const baseTotal  = config.sqft * config.baseRate
-  const totalCost  = baseTotal + config.floorRisePremium + config.premiumLocation
-                   + config.carParking + config.infraCharges + config.clubHouseCharges
+  const totalCost  = baseTotal + config.floorRisePremium + config.premiumLocation + config.carParking + config.infraCharges + config.clubHouseCharges
   const withGst    = totalCost * 1.05
   const refunded   = withGst * 0.80
   const iGetToKeep = refunded - config.principalOutstanding
 
-  const emiSum     = emis.reduce((s, e) => s + e.amount, 0)
-  const paymentSum = config.payments.reduce((s, p) => s + p.amount, 0)
+  const emiSum          = emis.reduce((s, e) => s + e.amount, 0)
+  const paymentSum      = config.payments.reduce((s, p) => s + p.amount, 0)
   const totalFromPocket = paymentSum + emiSum
-
-  const profitLoss    = iGetToKeep - totalFromPocket
-  const profitLossPct = (profitLoss / totalFromPocket) * 100
+  const profitLoss      = iGetToKeep - totalFromPocket
+  const profitLossPct   = (profitLoss / totalFromPocket) * 100
 
   async function persist(updated: RegentConfig) {
     setConfig(updated)
     await saveRegentConfig(updated as unknown as Record<string, unknown>)
   }
 
-  async function startEditField(key: keyof RegentConfig, current: number) {
-    setEditField(key)
-    setEditValue(String(current))
-  }
-
-  async function commitField() {
-    if (!editField || !config) return
-    const val = parseFloat(editValue)
-    if (!isNaN(val)) await persist({ ...config, [editField]: val } as RegentConfig)
-    setEditField(null)
-  }
-
-  async function commitPayment() {
-    if (editPaymentIndex === null || !config) return
+  async function commitPayment(i: number) {
     const val = parseFloat(editPaymentValue)
     if (!isNaN(val)) {
-      const payments = config.payments.map((p, i) => i === editPaymentIndex ? { ...p, amount: val } : p)
-      await persist({ ...config, payments })
+      const payments = config!.payments.map((p, idx) => idx === i ? { ...p, amount: val } : p)
+      await persist({ ...config!, payments })
     }
     setEditPaymentIndex(null)
   }
@@ -105,7 +123,7 @@ export default function RegentPage() {
   async function onAddEmi(data: EmiForm) {
     setEmiLoading(true)
     const ref = await addRegentEmi({ date: data.date, amount: Number(data.amount) })
-    setEmis(prev => [...prev, { id: ref.id, date: data.date, amount: Number(data.amount) }].sort((a,b)=>b.date.localeCompare(a.date)))
+    setEmis(prev => [...prev, { id: ref.id, date: data.date, amount: Number(data.amount) }].sort((a, b) => b.date.localeCompare(a.date)))
     resetEmi()
     setShowAddEmi(false)
     setEmiLoading(false)
@@ -124,216 +142,169 @@ export default function RegentPage() {
 
   async function removeEmi(id: string) {
     const emi = emis.find(e => e.id === id)
-    const ok = await confirm({
-      title: 'Remove EMI entry',
-      message: `Remove the EMI of ₹${emi?.amount.toLocaleString()} on ${emi?.date}?`,
-    })
+    const ok = await confirm({ title: 'Remove EMI entry', message: `Remove the EMI of ₹${emi?.amount.toLocaleString()} on ${emi?.date}?` })
     if (!ok) return
     await deleteRegentEmi(id)
     setEmis(prev => prev.filter(e => e.id !== id))
   }
 
-  function editable(key: keyof RegentConfig, label: string, value: number) {
-    return (
-      <div className="flex justify-between items-center py-2 border-b border-gray-800/50">
-        <span className="text-gray-400 text-sm">{label}</span>
-        {!isReadOnly && editField === key ? (
-          <div className="flex gap-1">
-            <input type="number" className="input w-32 text-right text-sm"
-              value={editValue} onChange={e => setEditValue(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && commitField()} autoFocus />
-            <button onClick={commitField} className="btn-primary text-xs px-2">OK</button>
-          </div>
-        ) : isReadOnly ? (
-          <span className="text-gray-200 text-sm">₹{fmtINR(value)}</span>
-        ) : (
-          <button className="text-gray-200 text-sm hover:text-white hover:underline"
-            onClick={() => startEditField(key, value)}>
-            ₹{fmtINR(value)}
-          </button>
-        )}
-      </div>
-    )
-  }
+  const pnlColor  = profitLoss >= 0 ? 'success.main' : 'error.main'
+  const keepColor = iGetToKeep >= 0 ? 'success.main' : 'error.main'
 
   return (
-    <div className="space-y-6 max-w-3xl">
-      <h1 className="text-xl font-bold text-white">Regent Property</h1>
+    <Box sx={{ maxWidth: 800 }}>
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Regent Property</Typography>
 
-      <div className="grid md:grid-cols-2 gap-5">
-        {/* Cost breakdown */}
-        <div className="card space-y-0">
-          <h2 className="font-semibold text-white mb-3">Cost Breakdown</h2>
-          {editable('sqft', 'Area (sqft)', config.sqft)}
-          {editable('baseRate', 'Base Rate (₹/sqft)', config.baseRate)}
-          <div className="flex justify-between py-2 border-b border-gray-800/50">
-            <span className="text-gray-400 text-sm">Base Price</span>
-            <span className="text-gray-200 text-sm">₹{fmtINR(baseTotal)}</span>
-          </div>
-          {editable('floorRisePremium', 'Floor Rise Premium', config.floorRisePremium)}
-          {editable('premiumLocation', 'Premium Location', config.premiumLocation)}
-          {editable('carParking', 'Car Parking', config.carParking)}
-          {editable('infraCharges', 'Infra Charges', config.infraCharges)}
-          {editable('clubHouseCharges', 'Club House Charges', config.clubHouseCharges)}
+      <Grid container spacing={2.5}>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Cost Breakdown</Typography>
+            <EditableRow label="Area (sqft)" value={config.sqft} onCommit={v => persist({ ...config, sqft: v })} isReadOnly={isReadOnly} />
+            <EditableRow label="Base Rate (₹/sqft)" value={config.baseRate} onCommit={v => persist({ ...config, baseRate: v })} isReadOnly={isReadOnly} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+              <Typography variant="body2" color="text.secondary">Base Price</Typography>
+              <Typography variant="body2">₹{fmtINR(baseTotal)}</Typography>
+            </Box>
+            <EditableRow label="Floor Rise Premium" value={config.floorRisePremium} onCommit={v => persist({ ...config, floorRisePremium: v })} isReadOnly={isReadOnly} />
+            <EditableRow label="Premium Location" value={config.premiumLocation} onCommit={v => persist({ ...config, premiumLocation: v })} isReadOnly={isReadOnly} />
+            <EditableRow label="Car Parking" value={config.carParking} onCommit={v => persist({ ...config, carParking: v })} isReadOnly={isReadOnly} />
+            <EditableRow label="Infra Charges" value={config.infraCharges} onCommit={v => persist({ ...config, infraCharges: v })} isReadOnly={isReadOnly} />
+            <EditableRow label="Club House Charges" value={config.clubHouseCharges} onCommit={v => persist({ ...config, clubHouseCharges: v })} isReadOnly={isReadOnly} />
+            <Divider sx={{ my: 1 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>₹{fmtINR(totalCost)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
+              <Typography variant="body2" color="text.secondary">Saleable Value (+5% GST)</Typography>
+              <Typography variant="body2">₹{fmtINR(withGst)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
+              <Typography variant="body2" color="text.secondary">Refunded if cancelled (-20%)</Typography>
+              <Typography variant="body2">₹{fmtINR(refunded)}</Typography>
+            </Box>
+            <EditableRow label="Principal Outstanding" value={config.principalOutstanding} onCommit={v => persist({ ...config, principalOutstanding: v })} isReadOnly={isReadOnly} />
+            <Divider sx={{ my: 1 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>I get to keep</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: keepColor }}>₹{fmtINR(iGetToKeep)}</Typography>
+            </Box>
+          </Paper>
+        </Grid>
 
-          <div className="flex justify-between py-2.5 border-t border-gray-700 mt-1">
-            <span className="font-semibold text-white">Total</span>
-            <span className="font-semibold text-white">₹{fmtINR(totalCost)}</span>
-          </div>
-          <div className="flex justify-between py-2 text-sm">
-            <span className="text-gray-400">Saleable Value (+5% GST)</span>
-            <span className="text-gray-200">₹{fmtINR(withGst)}</span>
-          </div>
-          <div className="flex justify-between py-2 text-sm">
-            <span className="text-gray-400">Refunded if cancelled (-20%)</span>
-            <span className="text-gray-200">₹{fmtINR(refunded)}</span>
-          </div>
-          {editable('principalOutstanding', 'Principal Outstanding', config.principalOutstanding)}
-          <div className="flex justify-between py-3 border-t border-gray-700 mt-1">
-            <span className="font-bold text-white">I get to keep</span>
-            <span className={`font-bold text-lg ${iGetToKeep >= 0 ? 'positive' : 'negative'}`}>
-              ₹{fmtINR(iGetToKeep)}
-            </span>
-          </div>
-        </div>
+        <Grid size={{ xs: 12, md: 6 }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937', mb: 2.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Payments Made</Typography>
+            {config.payments.map((p, i) => (
+              <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+                <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 160 }}>{p.label}</Typography>
+                {!isReadOnly && editPaymentIndex === i ? (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <TextField size="small" type="number" value={editPaymentValue} onChange={e => setEditPaymentValue(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && commitPayment(i)} slotProps={{ htmlInput: { style: { width: 110 } } }} autoFocus />
+                    <Button size="small" variant="contained" onClick={() => commitPayment(i)} sx={{ minWidth: 0, px: 1.5 }}>OK</Button>
+                  </Box>
+                ) : isReadOnly ? (
+                  <Typography variant="body2">₹{fmtINR(p.amount)}</Typography>
+                ) : (
+                  <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+                    onClick={() => { setEditPaymentIndex(i); setEditPaymentValue(String(p.amount)) }}>
+                    ₹{fmtINR(p.amount)}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+              <Typography variant="body2" color="text.secondary">Home Loan EMIs (sum)</Typography>
+              <Typography variant="body2">₹{fmtINR(emiSum)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.5 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total From Pocket</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>₹{fmtINR(totalFromPocket)}</Typography>
+            </Box>
+          </Paper>
 
-        {/* Right column: Payments + P&L */}
-        <div className="space-y-5">
-          {/* Payments */}
-          <div className="card">
-            <h2 className="font-semibold text-white mb-3">Payments Made</h2>
-            <div className="space-y-0">
-              {config.payments.map((p, i) => (
-                <div key={i} className="flex justify-between items-center py-2 border-b border-gray-800/50">
-                  <Tooltip content={p.label}>
-                    <span className="text-gray-400 text-sm truncate max-w-[160px] block">{p.label}</span>
-                  </Tooltip>
-                  {!isReadOnly && editPaymentIndex === i ? (
-                    <div className="flex gap-1">
-                      <input type="number" className="input w-28 text-right text-sm"
-                        value={editPaymentValue} onChange={e => setEditPaymentValue(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && commitPayment()} autoFocus />
-                      <button onClick={commitPayment} className="btn-primary text-xs px-2">OK</button>
-                    </div>
-                  ) : isReadOnly ? (
-                    <span className="text-gray-200 text-sm">₹{fmtINR(p.amount)}</span>
-                  ) : (
-                    <button className="text-gray-200 text-sm hover:underline"
-                      onClick={() => { setEditPaymentIndex(i); setEditPaymentValue(String(p.amount)) }}>
-                      ₹{fmtINR(p.amount)}
-                    </button>
-                  )}
-                </div>
-              ))}
-              <div className="flex justify-between py-2 border-b border-gray-800/50">
-                <span className="text-gray-400 text-sm">Home Loan EMIs (sum)</span>
-                <span className="text-gray-200 text-sm">₹{fmtINR(emiSum)}</span>
-              </div>
-              <div className="flex justify-between pt-2.5">
-                <span className="font-semibold text-white text-sm">Total From Pocket</span>
-                <span className="font-semibold text-white">₹{fmtINR(totalFromPocket)}</span>
-              </div>
-            </div>
-          </div>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Profit / Loss</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+              <Typography variant="body2" color="text.secondary">I get to keep</Typography>
+              <Typography variant="body2">₹{fmtINR(iGetToKeep)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+              <Typography variant="body2" color="text.secondary">Total From Pocket</Typography>
+              <Typography variant="body2">₹{fmtINR(totalFromPocket)}</Typography>
+            </Box>
+            <Divider sx={{ mb: 1.5 }} />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>P/L Amount</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: pnlColor }}>₹{fmtINR(profitLoss)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>P/L %</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: pnlColor }}>{profitLossPct.toFixed(2)}%</Typography>
+            </Box>
+          </Paper>
+        </Grid>
+      </Grid>
 
-          {/* P&L */}
-          <div className="card">
-            <h2 className="font-semibold text-white mb-3">Profit / Loss</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-400">I get to keep</span>
-                <span className="text-gray-200">₹{fmtINR(iGetToKeep)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-400">Total From Pocket</span>
-                <span className="text-gray-200">₹{fmtINR(totalFromPocket)}</span>
-              </div>
-              <div className="flex justify-between border-t border-gray-700 pt-2">
-                <span className="font-semibold text-white">P/L Amount</span>
-                <span className={`font-bold text-base ${profitLoss >= 0 ? 'positive' : 'negative'}`}>
-                  ₹{fmtINR(profitLoss)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="font-semibold text-white">P/L %</span>
-                <span className={`font-bold text-base ${profitLoss >= 0 ? 'positive' : 'negative'}`}>
-                  {profitLossPct.toFixed(2)}%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* EMI Schedule */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-white">Home Loan EMI Schedule</h2>
+      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937', mt: 2.5 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Home Loan EMI Schedule</Typography>
           {!isReadOnly && (
-            <button
-              onClick={() => {
-                if (!showAddEmi && emis.length > 0) resetEmi({ date: '', amount: emis[0].amount })
-                setShowAddEmi(v => !v)
-              }}
-              className="btn-primary text-xs px-3 py-1.5"
-            >
-              + Add EMI
-            </button>
+            <Button size="small" variant="outlined" startIcon={<AddIcon />}
+              onClick={() => { if (!showAddEmi && emis.length > 0) resetEmi({ date: '', amount: emis[0].amount }); setShowAddEmi(v => !v) }}>
+              Add EMI
+            </Button>
           )}
-        </div>
+        </Box>
 
         {showAddEmi && (
-          <form onSubmit={handleEmi(onAddEmi)} className="flex gap-2 mb-4">
-            <input type="date" className="input flex-1 text-sm" {...regEmi('date', { required: true })} />
-            <input type="number" step="any" className="input w-32 text-sm" placeholder="Amount"
-              {...regEmi('amount', { required: true, valueAsNumber: true })} />
-            <button type="submit" disabled={emiLoading} className="btn-primary text-xs px-3">
+          <Box component="form" onSubmit={handleEmi(onAddEmi)} sx={{ display: 'flex', gap: 1.5, mb: 2.5 }}>
+            <TextField size="small" type="date" {...regEmi('date', { required: true })} sx={{ flex: 1 }} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField size="small" type="number" placeholder="Amount" {...regEmi('amount', { required: true, valueAsNumber: true })} sx={{ width: 140 }} />
+            <Button type="submit" variant="contained" size="small" disabled={emiLoading}>
               {emiLoading ? '…' : 'Add'}
-            </button>
-          </form>
+            </Button>
+          </Box>
         )}
 
-        <div className="max-h-64 overflow-y-auto divide-y divide-gray-800">
+        <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
           {emis.map(emi => (
-            <div key={emi.id} className="flex items-center justify-between py-2 group">
-              <span className="text-gray-400 text-sm">{isoToDisplay(emi.date)}</span>
-              <div className="flex items-center gap-3">
+            <Box key={emi.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937', '&:hover .delete-emi': { opacity: 1 } }}>
+              <Typography variant="body2" color="text.secondary">{isoToDisplay(emi.date)}</Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 {!isReadOnly && editEmiId === emi.id ? (
-                  <div className="flex gap-1">
-                    <input
-                      type="number" className="input w-28 text-right text-sm"
-                      value={editEmiValue}
-                      onChange={e => setEditEmiValue(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') commitEmiEdit(); if (e.key === 'Escape') setEditEmiId(null) }}
-                      onBlur={commitEmiEdit}
-                      autoFocus
-                    />
-                  </div>
+                  <TextField size="small" type="number" value={editEmiValue}
+                    onChange={e => setEditEmiValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') commitEmiEdit(); if (e.key === 'Escape') setEditEmiId(null) }}
+                    onBlur={commitEmiEdit}
+                    slotProps={{ htmlInput: { style: { width: 110 } } }} autoFocus />
                 ) : (
-                  <button
+                  <Typography variant="body2"
                     onClick={() => !isReadOnly && (setEditEmiId(emi.id), setEditEmiValue(String(emi.amount)))}
-                    className={`text-gray-200 text-sm ${!isReadOnly ? 'hover:underline' : ''}`}
-                  >
+                    sx={{ cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}>
                     ₹{fmtINR(emi.amount)}
-                  </button>
+                  </Typography>
                 )}
-                {!isReadOnly && <button onClick={() => removeEmi(emi.id)}
-                  className="text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs">
-                  ✕
-                </button>}
-              </div>
-            </div>
+                {!isReadOnly && (
+                  <IconButton className="delete-emi" size="small" onClick={() => removeEmi(emi.id)}
+                    sx={{ opacity: 0, transition: 'opacity 0.15s', color: 'error.main', p: 0.25 }}>
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+                )}
+              </Box>
+            </Box>
           ))}
-          {emis.length === 0 && <p className="text-gray-600 text-sm py-2">No EMI entries yet.</p>}
-        </div>
+          {emis.length === 0 && <Typography variant="body2" color="text.disabled" sx={{ py: 1.5 }}>No EMI entries yet.</Typography>}
+        </Box>
 
         {emis.length > 0 && (
-          <div className="flex justify-between pt-3 border-t border-gray-700 mt-2">
-            <span className="font-semibold text-white text-sm">EMI Total</span>
-            <span className="font-semibold text-white">₹{fmtINR(emiSum)}</span>
-          </div>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.5, borderTop: '1px solid #374151', mt: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>EMI Total</Typography>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>₹{fmtINR(emiSum)}</Typography>
+          </Box>
         )}
-      </div>
-    </div>
+      </Paper>
+    </Box>
   )
 }

@@ -1,13 +1,17 @@
 import { useEffect, useState } from 'react'
+import {
+  Box, Paper, Typography, Button, CircularProgress, IconButton,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+} from '@mui/material'
+import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
+import DeleteIcon from '@mui/icons-material/Delete'
 import { confirm } from '../components/ConfirmDialog'
 import { useSnapshotStore } from '../store/snapshotStore'
 import { useDashboardStore, computeNetInr } from '../store/dashboardStore'
 import { useRatesStore } from '../store/ratesStore'
 import { fmtINR, fmtDiff, diffClass, isoToDisplay } from '../lib/fmt'
 import { useIsReadOnly } from '../store/authStore'
-import HoverTooltip from '../components/Tooltip'
-import Spinner from '../components/Spinner'
-import Modal from '../components/Modal'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
 } from 'recharts'
@@ -21,7 +25,6 @@ export default function SnapshotsPage() {
   const [saving, setSaving] = useState(false)
   const isReadOnly = useIsReadOnly()
 
-  // Inline row editing
   type EditField = 'total' | 'notes'
   const [editCell, setEditCell] = useState<{ id: string; field: EditField } | null>(null)
   const [editValue, setEditValue] = useState('')
@@ -35,12 +38,9 @@ export default function SnapshotsPage() {
     if (!editCell) return
     const snap = snapshots.find(s => s.id === editCell.id)
     if (!snap) { setEditCell(null); return }
-
     if (editCell.field === 'total') {
       const newTotal = parseFloat(editValue)
-      if (!isNaN(newTotal)) {
-        await updateSnapshot({ ...snap, total: newTotal })
-      }
+      if (!isNaN(newTotal)) await updateSnapshot({ ...snap, total: newTotal })
     } else {
       await updateSnapshot({ ...snap, notes: editValue })
     }
@@ -69,10 +69,9 @@ export default function SnapshotsPage() {
     setNote('')
   }
 
-  // Chart data — last 40 entries
   const chartData = snapshots.slice(-40).map(s => ({
-    date: s.date.slice(5),  // MM-DD
-    total: Math.round(s.total / 1_00_000), // in lakhs
+    date: s.date.slice(5),
+    total: Math.round(s.total / 1_00_000),
     label: s.date,
   }))
 
@@ -80,166 +79,173 @@ export default function SnapshotsPage() {
     if (!active || !payload?.length) return null
     const snap = snapshots.find(s => s.date.slice(5) === label)
     return (
-      <div className="bg-gray-800 border border-gray-700 rounded-lg p-3 text-xs shadow-xl">
-        <p className="text-gray-400 mb-1">{snap ? isoToDisplay(snap.date) : label}</p>
-        <p className="text-white font-semibold">₹{payload[0].value}L</p>
-        {snap?.notes && <p className="text-gray-500 mt-1 max-w-[180px] truncate">{snap.notes}</p>}
-      </div>
+      <Paper elevation={3} sx={{ p: 1.5 }}>
+        <Typography variant="caption" color="text.secondary">{snap ? isoToDisplay(snap.date) : label}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>₹{payload[0].value}L</Typography>
+        {snap?.notes && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', maxWidth: 180 }}>{snap.notes}</Typography>}
+      </Paper>
     )
   }
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Spinner /></div>
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}><CircularProgress /></Box>
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-white">Snapshots</h1>
+    <Box sx={{ maxWidth: 860 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>Snapshots</Typography>
         {!isReadOnly && (
-          <button onClick={() => setShowModal(true)} className="btn-primary text-sm">
-            📸 Save Snapshot
-          </button>
+          <Button variant="outlined" size="small" startIcon={<CameraAltOutlinedIcon />} onClick={() => setShowModal(true)}>
+            Save Snapshot
+          </Button>
         )}
-      </div>
+      </Box>
 
       {/* Chart */}
       {chartData.length > 1 && (
-        <div className="card">
-          <p className="label mb-3">Net Worth over time (₹ Lakhs)</p>
+        <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid #1f2937' }}>
+          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>Net Worth over time (₹ Lakhs)</Typography>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
               <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 10 }} tickLine={false} />
-              <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} tickLine={false} axisLine={false}
-                tickFormatter={v => `${v}L`} />
+              <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}L`} />
               <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="total" stroke="#3b82f6" strokeWidth={2}
-                dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }}
+              <Line type="monotone" dataKey="total" stroke="#2563eb" strokeWidth={2}
+                dot={{ r: 3, fill: '#2563eb', strokeWidth: 0 }}
                 activeDot={{ r: 5, fill: '#60a5fa' }} />
             </LineChart>
           </ResponsiveContainer>
-        </div>
+        </Paper>
       )}
 
       {/* Table */}
-      <div className="card overflow-hidden p-0">
-        <div className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[560px]">
-          <thead className="bg-gray-800">
-            <tr className="text-left">
-              <th className="px-4 py-3 label">Date</th>
-              <th className="px-4 py-3 label text-right hidden sm:table-cell">Liquid</th>
-              <th className="px-4 py-3 label text-right hidden sm:table-cell">Appreciating</th>
-              <th className="px-4 py-3 label text-right hidden sm:table-cell">Depreciating</th>
-              <th className="px-4 py-3 label text-right">Total</th>
-              <th className="px-4 py-3 label text-right">Diff</th>
-              <th className="px-4 py-3 label hidden sm:table-cell">Notes</th>
-              <th className="px-2 py-3" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-800">
+      <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #1f2937' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: '#0f172a' }}>
+              <TableCell>Date</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Liquid</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Appreciating</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Depreciating</TableCell>
+              <TableCell align="right">Total</TableCell>
+              <TableCell align="right">Diff</TableCell>
+              <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Notes</TableCell>
+              <TableCell padding="checkbox" />
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {[...snapshots].reverse().map(s => (
-              <tr key={s.id} className="hover:bg-gray-900/50 transition-colors group">
-                <td className="px-4 py-2.5 text-gray-300 whitespace-nowrap">{isoToDisplay(s.date)}</td>
-                <td className="px-4 py-2.5 text-right text-gray-400 hidden sm:table-cell">₹{fmtINR(s.liquid)}</td>
-                <td className="px-4 py-2.5 text-right text-gray-400 hidden sm:table-cell">₹{fmtINR(s.appreciating)}</td>
-                <td className="px-4 py-2.5 text-right text-gray-400 hidden sm:table-cell">₹{fmtINR(s.depreciating)}</td>
+              <TableRow key={s.id} hover>
+                <TableCell sx={{ whiteSpace: 'nowrap', color: 'text.secondary' }}>{isoToDisplay(s.date)}</TableCell>
+                <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'table-cell' } }}>₹{fmtINR(s.liquid)}</TableCell>
+                <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'table-cell' } }}>₹{fmtINR(s.appreciating)}</TableCell>
+                <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'table-cell' } }}>₹{fmtINR(s.depreciating)}</TableCell>
 
-                {/* Total — editable */}
-                <td className="px-2 py-1.5 text-right">
+                <TableCell align="right">
                   {!isReadOnly && editCell?.id === s.id && editCell.field === 'total' ? (
-                    <input
-                      type="text" inputMode="decimal" autoFocus
+                    <TextField
+                      size="small"
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
                       onBlur={commitCellEdit}
                       onKeyDown={handleCellKey}
-                      className="w-28 bg-blue-900/60 border border-blue-500 rounded px-1.5 py-0.5 text-right text-xs text-white focus:outline-none"
+                      autoFocus
+                      slotProps={{ htmlInput: { style: { textAlign: 'right', width: 100 } } }}
+                      sx={{ '& .MuiInputBase-root': { fontSize: 13 } }}
                     />
                   ) : (
-                    <button
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 500, cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}
                       onClick={() => !isReadOnly && startCellEdit(s.id, 'total', String(s.total))}
-                      className={`text-white font-medium ${!isReadOnly ? 'hover:underline cursor-pointer' : ''}`}
                     >
                       ₹{fmtINR(s.total)}
-                    </button>
+                    </Typography>
                   )}
-                </td>
+                </TableCell>
 
-                <td className={`px-4 py-2.5 text-right font-medium ${diffClass(s.difference)}`}>
-                  {fmtDiff(s.difference)}
-                </td>
+                <TableCell align="right">
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 500, color: diffClass(s.difference) === 'positive' ? 'success.main' : diffClass(s.difference) === 'negative' ? 'error.main' : 'text.secondary' }}
+                  >
+                    {fmtDiff(s.difference)}
+                  </Typography>
+                </TableCell>
 
-                {/* Notes — editable */}
-                <td className="px-2 py-1.5 max-w-xs hidden sm:table-cell">
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, maxWidth: 200 }}>
                   {!isReadOnly && editCell?.id === s.id && editCell.field === 'notes' ? (
-                    <input
-                      type="text" autoFocus
+                    <TextField
+                      size="small"
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
                       onBlur={commitCellEdit}
                       onKeyDown={handleCellKey}
-                      className="w-full bg-blue-900/60 border border-blue-500 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none"
+                      autoFocus
+                      fullWidth
+                      sx={{ '& .MuiInputBase-root': { fontSize: 13 } }}
                     />
                   ) : (
-                    <HoverTooltip content={s.notes}>
-                      <span
-                        onClick={() => !isReadOnly && startCellEdit(s.id, 'notes', s.notes)}
-                        className={`block truncate text-gray-500 ${!isReadOnly ? 'cursor-text hover:text-gray-300' : ''}`}
-                      >
-                        {s.notes || <span className="text-gray-700">—</span>}
-                      </span>
-                    </HoverTooltip>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      onClick={() => !isReadOnly && startCellEdit(s.id, 'notes', s.notes)}
+                      sx={{ cursor: isReadOnly ? 'default' : 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', '&:hover': isReadOnly ? {} : { color: 'text.primary' } }}
+                    >
+                      {s.notes || '—'}
+                    </Typography>
                   )}
-                </td>
+                </TableCell>
 
-                {/* Delete */}
-                <td className="px-2 py-1.5">
+                <TableCell padding="checkbox">
                   {!isReadOnly && (
-                    <button
+                    <IconButton
+                      size="small"
                       onClick={async () => {
                         const ok = await confirm({ title: 'Delete snapshot', message: `Delete snapshot for ${isoToDisplay(s.date)}?` })
                         if (ok) removeSnapshot(s.id)
                       }}
-                      className="text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs"
-                    >✕</button>
+                      sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' }, opacity: 0, '.MuiTableRow-root:hover &': { opacity: 1 } }}
+                    >
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
                   )}
-                </td>
-              </tr>
+                </TableCell>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
-        </div>
+          </TableBody>
+        </Table>
         {snapshots.length === 0 && (
-          <p className="text-center text-gray-600 py-8">No snapshots yet.</p>
+          <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', py: 4 }}>No snapshots yet.</Typography>
         )}
-      </div>
+      </TableContainer>
 
-      {showModal && (
-        <Modal title="Save Snapshot" onClose={() => setShowModal(false)}>
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-2 text-sm">
-              {[['Liquid', liquid], ['Appreciating', appreciating], ['Depreciating', depreciating]].map(([l, v]) => (
-                <div key={String(l)} className="bg-gray-800 rounded-lg p-2 text-center">
-                  <p className="label text-[10px] mb-0.5">{l}</p>
-                  <p className="text-white font-medium text-xs">₹{fmtINR(Number(v))}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-gray-400">Total: <span className="text-white font-semibold">₹{fmtINR(liquid + appreciating + depreciating)}</span></p>
-            <div>
-              <label className="label block mb-1">Note (optional)</label>
-              <input type="text" className="input" placeholder="What happened this period?"
-                value={note} onChange={e => setNote(e.target.value)} />
-            </div>
-            <div className="flex gap-2">
-              <button onClick={handleSave} disabled={saving} className="btn-primary flex-1 flex items-center justify-center gap-2">
-                {saving && <Spinner size="sm" />} Save
-              </button>
-              <button onClick={() => setShowModal(false)} className="btn-ghost flex-1">Cancel</button>
-            </div>
-          </div>
-        </Modal>
-      )}
-    </div>
+      {/* Save modal */}
+      <Dialog open={showModal} onClose={() => setShowModal(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Save Snapshot</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={1} sx={{ mb: 2 }}>
+            {[['Liquid', liquid], ['Appreciating', appreciating], ['Depreciating', depreciating]].map(([l, v]) => (
+              <Grid key={String(l)} size={{ xs: 4 }}>
+                <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: '#0f172a', border: '1px solid #1f2937' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>{l}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>₹{fmtINR(Number(v))}</Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Total: <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>₹{fmtINR(liquid + appreciating + depreciating)}</Box>
+          </Typography>
+          <TextField label="Note (optional)" size="small" fullWidth placeholder="What happened this period?" value={note} onChange={e => setNote(e.target.value)} />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setShowModal(false)} color="inherit">Cancel</Button>
+          <Button onClick={handleSave} variant="contained" disabled={saving}>
+            {saving ? <CircularProgress size={16} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   )
 }

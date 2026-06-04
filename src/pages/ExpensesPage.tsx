@@ -1,13 +1,19 @@
 import { useEffect, useState, useMemo, useRef, RefObject } from 'react'
 import {
+  Box, Typography, Paper, Button, TextField, IconButton,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  CircularProgress,
+} from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import DeleteIcon from '@mui/icons-material/Delete'
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator'
+import {
   fetchAllExpenses, saveMonthExpenses, deleteMonthExpenses,
   fetchExpenseRowOrder, saveExpenseRowOrder,
 } from '../services/firebase'
 import type { Currency, MonthExpenses } from '../types'
-import Spinner from '../components/Spinner'
 import { confirm } from '../components/ConfirmDialog'
 import { useIsReadOnly } from '../store/authStore'
-import Tooltip from '../components/Tooltip'
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -16,8 +22,6 @@ import {
   SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-
-// ── Module-level components (stable types across renders) ─────────────────────
 
 function CellInput({ inputRef, value, onChange, onBlur, onKeyDown }: {
   inputRef: RefObject<HTMLInputElement>
@@ -35,7 +39,17 @@ function CellInput({ inputRef, value, onChange, onBlur, onKeyDown }: {
       onChange={e => onChange(e.target.value)}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
-      className="w-full bg-blue-900/60 border border-blue-500 rounded px-1.5 py-0.5 text-right text-xs text-white focus:outline-none"
+      style={{
+        width: '100%',
+        background: 'rgba(37,99,235,0.15)',
+        border: '1px solid #2563eb',
+        borderRadius: 4,
+        padding: '2px 6px',
+        textAlign: 'right',
+        fontSize: 12,
+        color: 'white',
+        outline: 'none',
+      }}
     />
   )
 }
@@ -77,27 +91,19 @@ function SortableExpenseRow({
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.4 : 1,
-    position: isDragging ? ('relative' as const) : undefined,
-    zIndex: isDragging ? 10 : undefined,
   }
 
   return (
-    <tr ref={setNodeRef} style={style} className="hover:bg-gray-900/40 group">
-      <td className="sticky left-0 z-10 bg-gray-950 group-hover:bg-gray-900/80 px-2 py-2 text-gray-300 border-r border-gray-800">
-        <div className="flex items-center gap-1.5">
-          {/* Drag handle */}
+    <TableRow ref={setNodeRef} style={style} hover sx={{ '& .MuiTableCell-root': { py: 1 }, '&:hover .delete-row': { opacity: 1 } }}>
+      <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: '#030712', borderRight: '1px solid #1f2937', minWidth: 160, maxWidth: 160 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {!isReadOnly && (
-            <button
-              {...attributes}
-              {...listeners}
-              className="text-gray-700 hover:text-gray-400 cursor-grab active:cursor-grabbing touch-none shrink-0 text-base leading-none"
-              tabIndex={-1}
-            >⠿</button>
+            <Box component="span" {...attributes} {...listeners} sx={{ color: 'text.disabled', cursor: 'grab', lineHeight: 0, '&:active': { cursor: 'grabbing' }, touchAction: 'none' }}>
+              <DragIndicatorIcon sx={{ fontSize: 16 }} />
+            </Box>
           )}
-
           {!isReadOnly && editingItemName === name ? (
             <input
-              type="text"
               autoFocus
               value={editingItemValue}
               onChange={e => onEditingItemValueChange(e.target.value)}
@@ -106,50 +112,54 @@ function SortableExpenseRow({
                 if (e.key === 'Enter') onRenameItem(name, editingItemValue)
                 if (e.key === 'Escape') onCancelRename()
               }}
-              className="flex-1 min-w-0 bg-blue-900/60 border border-blue-500 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none"
+              style={{ flex: 1, minWidth: 0, background: 'rgba(37,99,235,0.15)', border: '1px solid #2563eb', borderRadius: 4, padding: '2px 6px', fontSize: 12, color: 'white', outline: 'none' }}
             />
           ) : (
-            <Tooltip content={name} className="flex-1 min-w-0">
-              <span
-                className={`block truncate max-w-32 ${!isReadOnly ? 'cursor-text hover:text-white' : ''}`}
-                onClick={() => { if (!isReadOnly) onStartEditName(name) }}
-              >{name}</span>
-            </Tooltip>
+            <Typography
+              variant="body2"
+              sx={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: isReadOnly ? 'default' : 'text', maxWidth: 120, '&:hover': isReadOnly ? {} : { color: 'text.primary' } }}
+              onClick={() => !isReadOnly && onStartEditName(name)}
+            >
+              {name}
+            </Typography>
           )}
-
           {!isReadOnly && editingItemName !== name && (
-            <button
+            <IconButton
+              className="delete-row"
+              size="small"
               onClick={() => onRemoveRow(name)}
-              className="text-gray-700 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0 text-xs"
-            >✕</button>
+              sx={{ opacity: 0, transition: 'opacity 0.15s', color: 'error.main', p: 0.25 }}
+            >
+              <DeleteIcon sx={{ fontSize: 14 }} />
+            </IconButton>
           )}
-        </div>
-      </td>
+        </Box>
+      </TableCell>
       {months.map(ym => {
         const isEditing = editCell?.row === name && editCell.col === ym
         const val = getAmount(ym, name)
         return (
-          <td key={ym} className="px-2 py-1.5 text-right">
+          <TableCell key={ym} align="right" sx={{ minWidth: 100, color: 'text.secondary' }}>
             {isEditing ? (
-              <CellInput inputRef={inputRef} value={editValue} onChange={onEditValueChange}
-                onBlur={onCommitEdit} onKeyDown={onKeyDown} />
+              <CellInput inputRef={inputRef} value={editValue} onChange={onEditValueChange} onBlur={onCommitEdit} onKeyDown={onKeyDown} />
             ) : isReadOnly ? (
-              <span className="text-gray-400">{fmt(val)}</span>
+              fmt(val)
             ) : (
-              <button
+              <Box
+                component="button"
                 onClick={() => onStartCellEdit(name, ym, String(val))}
-                className="w-full text-right text-gray-400 hover:text-gray-100 hover:underline"
-              >{fmt(val)}</button>
+                sx={{ background: 'none', border: 'none', cursor: 'pointer', color: 'text.secondary', fontSize: 13, textAlign: 'right', width: '100%', '&:hover': { color: 'text.primary', textDecoration: 'underline' } }}
+              >
+                {fmt(val)}
+              </Box>
             )}
-          </td>
+          </TableCell>
         )
       })}
-      <td />
-    </tr>
+      <TableCell sx={{ minWidth: 20 }} />
+    </TableRow>
   )
 }
-
-// ── Page ─────────────────────────────────────────────────────────────────────
 
 const CURRENCIES: Currency[] = ['INR', 'USD', 'CAD']
 const SYMBOL: Record<Currency, string> = { INR: '₹', USD: '$', CAD: 'C$' }
@@ -202,8 +212,6 @@ export default function ExpensesPage() {
     setLoading(false)
   }
 
-  // ── Derived ───────────────────────────────────────────────────────────────
-
   const allMonths = useMemo(() => {
     const set = new Set(expenses.map(e => e.yearMonth))
     set.add(currentYearMonth())
@@ -212,31 +220,20 @@ export default function ExpensesPage() {
   }, [expenses, extraMonths])
 
   const months = useMemo(() => {
-    return allMonths.filter(ym =>
-      (!fromMonth || ym >= fromMonth) &&
-      (!toMonth   || ym <= toMonth)
-    )
+    return allMonths.filter(ym => (!fromMonth || ym >= fromMonth) && (!toMonth || ym <= toMonth))
   }, [allMonths, fromMonth, toMonth])
 
   const itemNames = useMemo(() => {
     const allNames = new Set<string>()
     expenses.forEach(e => e.items.forEach(item => allNames.add(item.name)))
-    // Start with stored order (filtered to names that still exist)
     const ordered = rowOrder.filter(n => allNames.has(n))
-    // Append any new items not yet in rowOrder
     const orderedSet = new Set(ordered)
     allNames.forEach(n => { if (!orderedSet.has(n)) ordered.push(n) })
     return ordered
   }, [expenses, rowOrder])
 
   function getMonth(ym: string): MonthExpenses {
-    return expenses.find(e => e.yearMonth === ym) ?? {
-      id: `${activeCurrency}-${ym}`,
-      currency: activeCurrency,
-      yearMonth: ym,
-      salary: 0,
-      items: [],
-    }
+    return expenses.find(e => e.yearMonth === ym) ?? { id: `${activeCurrency}-${ym}`, currency: activeCurrency, yearMonth: ym, salary: 0, items: [] }
   }
 
   function getAmount(ym: string, itemName: string): number {
@@ -248,22 +245,15 @@ export default function ExpensesPage() {
     return m.salary - m.items.reduce((s, i) => s + i.amount, 0)
   }
 
-  // ── Persistence ───────────────────────────────────────────────────────────
-
   async function persistMonth(m: MonthExpenses) {
     await saveMonthExpenses(m as unknown as Record<string, unknown>)
-    setExpenses(prev => {
-      const without = prev.filter(e => e.id !== m.id)
-      return [...without, m].sort((a, b) => a.yearMonth.localeCompare(b.yearMonth))
-    })
+    setExpenses(prev => [...prev.filter(e => e.id !== m.id), m].sort((a, b) => a.yearMonth.localeCompare(b.yearMonth)))
   }
 
   async function persistRowOrder(order: string[]) {
     setRowOrder(order)
     await saveExpenseRowOrder(activeCurrency, order)
   }
-
-  // ── Cell editing ──────────────────────────────────────────────────────────
 
   function startEdit(row: string, col: string, currentVal: string) {
     setEditCell({ row, col })
@@ -275,10 +265,8 @@ export default function ExpensesPage() {
     const val = parseFloat(editValue)
     const amount = isNaN(val) ? 0 : val
     const { row, col } = editCell
-
     if (row === '__salary__') {
-      const m = getMonth(col)
-      await persistMonth({ ...m, salary: amount })
+      await persistMonth({ ...getMonth(col), salary: amount })
     } else {
       const m = getMonth(col)
       const itemExists = m.items.some(i => i.name === row)
@@ -295,8 +283,6 @@ export default function ExpensesPage() {
     if (e.key === 'Escape') setEditCell(null)
   }
 
-  // ── Row management ────────────────────────────────────────────────────────
-
   async function addItem() {
     const name = newItemName.trim()
     if (!name || itemNames.includes(name)) return
@@ -312,27 +298,16 @@ export default function ExpensesPage() {
     setShowAddMonth(false)
     setAddMonthValue('')
     if (months.includes(addMonthValue)) return
-    const prev = expenses
-      .filter(e => e.yearMonth < addMonthValue)
-      .sort((a, b) => b.yearMonth.localeCompare(a.yearMonth))[0]
+    const prev = expenses.filter(e => e.yearMonth < addMonthValue).sort((a, b) => b.yearMonth.localeCompare(a.yearMonth))[0]
     if (prev) {
-      await persistMonth({
-        id: `${activeCurrency}-${addMonthValue}`,
-        currency: activeCurrency,
-        yearMonth: addMonthValue,
-        salary: prev.salary,
-        items: prev.items,
-      })
+      await persistMonth({ id: `${activeCurrency}-${addMonthValue}`, currency: activeCurrency, yearMonth: addMonthValue, salary: prev.salary, items: prev.items })
     } else {
       setExtraMonths(p => [...p, addMonthValue])
     }
   }
 
   async function deleteMonth(ym: string) {
-    const ok = await confirm({
-      title: 'Delete month',
-      message: `Delete all data for ${monthLabel(ym)}? This cannot be undone.`,
-    })
+    const ok = await confirm({ title: 'Delete month', message: `Delete all data for ${monthLabel(ym)}? This cannot be undone.` })
     if (!ok) return
     const id = `${activeCurrency}-${ym}`
     await deleteMonthExpenses(id)
@@ -353,10 +328,7 @@ export default function ExpensesPage() {
   }
 
   async function removeRow(itemName: string) {
-    const ok = await confirm({
-      title: 'Remove expense row',
-      message: `Remove "${itemName}" from all months? This cannot be undone.`,
-    })
+    const ok = await confirm({ title: 'Remove expense row', message: `Remove "${itemName}" from all months? This cannot be undone.` })
     if (!ok) return
     for (const m of expenses) {
       if (m.items.some(i => i.name === itemName)) {
@@ -371,196 +343,203 @@ export default function ExpensesPage() {
     if (!over || active.id === over.id) return
     const oldIndex = itemNames.indexOf(active.id as string)
     const newIndex = itemNames.indexOf(over.id as string)
-    const reordered = arrayMove(itemNames, oldIndex, newIndex)
-    persistRowOrder(reordered)
+    persistRowOrder(arrayMove(itemNames, oldIndex, newIndex))
   }
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   const sym = SYMBOL[activeCurrency]
 
   function fmt(n: number): React.ReactNode {
-    if (n === 0) return <span className="text-gray-700">—</span>
+    if (n === 0) return <span style={{ color: '#374151' }}>—</span>
     return <>{sym}{Math.abs(n).toLocaleString()}</>
   }
 
   return (
-    <div className="space-y-4 max-w-full">
-      <h1 className="text-xl font-bold text-white">Expenses</h1>
+    <Box sx={{ maxWidth: '100%' }}>
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Expenses</Typography>
 
       {/* Currency tabs */}
-      <div className="flex gap-1 bg-gray-900 rounded-lg p-1 w-fit border border-gray-800">
+      <Box sx={{ display: 'flex', gap: 0.5, mb: 2, bgcolor: '#111827', p: 0.5, borderRadius: 2, width: 'fit-content', border: '1px solid #1f2937' }}>
         {CURRENCIES.map(c => (
-          <button key={c} onClick={() => setActiveCurrency(c)}
-            className={`px-5 py-1.5 rounded-md text-sm font-medium transition-colors ${
-              activeCurrency === c ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
-            }`}>{c}</button>
+          <Button
+            key={c}
+            onClick={() => setActiveCurrency(c)}
+            variant={activeCurrency === c ? 'contained' : 'text'}
+            size="small"
+            sx={{ minWidth: 52, fontSize: 13, color: activeCurrency === c ? 'white' : 'text.secondary' }}
+          >
+            {c}
+          </Button>
         ))}
-      </div>
+      </Box>
 
       {/* Month range filter */}
-      <div className="flex flex-wrap items-center gap-3 text-sm">
-        <span className="text-gray-400">Show:</span>
-        <div className="flex items-center gap-1.5">
-          <input type="month" className="input text-xs py-1 px-2 w-32" value={fromMonth}
-            onChange={e => setFromMonth(e.target.value)} />
-          <span className="text-gray-600">to</span>
-          <input type="month" className="input text-xs py-1 px-2 w-32" value={toMonth}
-            onChange={e => setToMonth(e.target.value)} />
-        </div>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2 }}>
+        <Typography variant="body2" color="text.secondary">Show:</Typography>
+        <TextField size="small" type="month" value={fromMonth} onChange={e => setFromMonth(e.target.value)} slotProps={{ htmlInput: { style: { fontSize: 12, padding: '4px 8px' } } }} sx={{ width: 148 }} />
+        <Typography variant="body2" color="text.disabled">to</Typography>
+        <TextField size="small" type="month" value={toMonth} onChange={e => setToMonth(e.target.value)} slotProps={{ htmlInput: { style: { fontSize: 12, padding: '4px 8px' } } }} sx={{ width: 148 }} />
         {(fromMonth || toMonth) && (
-          <button onClick={() => { setFromMonth(''); setToMonth('') }}
-            className="text-gray-600 hover:text-gray-300 text-xs">Clear</button>
+          <Button size="small" color="inherit" onClick={() => { setFromMonth(''); setToMonth('') }} sx={{ fontSize: 12, color: 'text.disabled' }}>Clear</Button>
         )}
-        <span className="text-gray-700 text-xs">{months.length} month{months.length !== 1 ? 's' : ''}</span>
-      </div>
+        <Typography variant="caption" color="text.disabled">{months.length} month{months.length !== 1 ? 's' : ''}</Typography>
+      </Box>
 
       {loading ? (
-        <div className="flex items-center justify-center h-32"><Spinner /></div>
+        <Box sx={{ display: 'flex', justifyContent: 'center', height: 128, alignItems: 'center' }}><CircularProgress size={28} /></Box>
       ) : (
-        <div className="card p-0 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="text-sm border-collapse min-w-max w-full">
-              <thead>
-                <tr className="bg-gray-800">
-                  <th className="sticky left-0 z-10 bg-gray-800 text-left px-4 py-2.5 label border-r border-gray-700 w-44 min-w-44">
-                    Item
-                  </th>
-                  {months.map(ym => (
-                    <th key={ym} className="px-3 py-2.5 label text-right whitespace-nowrap min-w-28 group/month">
-                      <span className="flex items-center justify-end gap-1">
-                        {monthLabel(ym)}
-                        {!isReadOnly && (
-                          <button onClick={() => deleteMonth(ym)}
-                            className="opacity-0 group-hover/month:opacity-100 text-gray-600 hover:text-red-500 transition-opacity text-[10px] leading-none"
-                            title={`Delete ${monthLabel(ym)}`}>✕</button>
-                        )}
-                      </span>
-                    </th>
-                  ))}
-                  {!isReadOnly && <th className="px-3 py-2.5 whitespace-nowrap">
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #1f2937', overflow: 'auto' }}>
+          <Table size="small" sx={{ minWidth: 'max-content' }}>
+            <TableHead>
+              <TableRow sx={{ bgcolor: '#0f172a' }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: '#0f172a', borderRight: '1px solid #1f2937', minWidth: 160 }}>
+                  Item
+                </TableCell>
+                {months.map(ym => (
+                  <TableCell key={ym} align="right" sx={{ minWidth: 100, whiteSpace: 'nowrap' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 0.5, '&:hover .delete-month': { opacity: 1 } }}>
+                      {monthLabel(ym)}
+                      {!isReadOnly && (
+                        <IconButton
+                          className="delete-month"
+                          size="small"
+                          onClick={() => deleteMonth(ym)}
+                          title={`Delete ${monthLabel(ym)}`}
+                          sx={{ opacity: 0, transition: 'opacity 0.15s', color: 'text.disabled', '&:hover': { color: 'error.main' }, p: 0.25 }}
+                        >
+                          <DeleteIcon sx={{ fontSize: 12 }} />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </TableCell>
+                ))}
+                {!isReadOnly && (
+                  <TableCell align="center" sx={{ minWidth: 100 }}>
                     {showAddMonth ? (
-                      <div className="flex items-center gap-1">
-                        <input type="month" className="input text-xs py-0.5 px-1.5 w-32" value={addMonthValue}
+                      <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+                        <TextField
+                          size="small"
+                          type="month"
+                          value={addMonthValue}
                           onChange={e => setAddMonthValue(e.target.value)}
                           onKeyDown={e => { if (e.key === 'Enter') addMonth(); if (e.key === 'Escape') setShowAddMonth(false) }}
-                          autoFocus />
-                        <button onClick={addMonth} className="btn-primary text-xs px-2 py-0.5">OK</button>
-                        <button onClick={() => setShowAddMonth(false)} className="text-gray-600 hover:text-gray-300 text-xs px-1">✕</button>
-                      </div>
+                          autoFocus
+                          slotProps={{ htmlInput: { style: { fontSize: 11, padding: '2px 6px', width: 112 } } }}
+                        />
+                        <Button size="small" variant="contained" onClick={addMonth} sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}>OK</Button>
+                        <IconButton size="small" onClick={() => setShowAddMonth(false)} sx={{ p: 0.25, color: 'text.disabled' }}><DeleteIcon sx={{ fontSize: 12 }} /></IconButton>
+                      </Box>
                     ) : (
-                      <button onClick={() => setShowAddMonth(true)}
-                        className="text-gray-600 hover:text-blue-400 text-xs font-medium border border-gray-700 hover:border-blue-500 rounded px-2 py-0.5 transition-colors">
-                        + Month
-                      </button>
+                      <Button size="small" startIcon={<AddIcon sx={{ fontSize: 12 }} />} variant="outlined"
+                        onClick={() => setShowAddMonth(true)}
+                        sx={{ fontSize: 11, py: 0.25, px: 1, color: 'text.secondary' }}>
+                        Month
+                      </Button>
                     )}
-                  </th>}
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-gray-800/60">
-                {/* SALARY */}
-                <tr className="bg-gray-900/80 font-semibold">
-                  <td className="sticky left-0 z-10 bg-gray-900 px-4 py-2 text-emerald-400 border-r border-gray-700">
-                    SALARY
-                  </td>
-                  {months.map(ym => {
-                    const isEditing = editCell?.row === '__salary__' && editCell.col === ym
-                    const val = getMonth(ym).salary
-                    return (
-                      <td key={ym} className="px-2 py-1.5 text-right">
-                        {isEditing ? (
-                          <CellInput inputRef={inputRef} value={editValue} onChange={setEditValue}
-                            onBlur={commitEdit} onKeyDown={handleKeyDown} />
-                        ) : isReadOnly ? (
-                          <span className="text-emerald-400">
-                            {val ? `${sym}${val.toLocaleString()}` : <span className="text-gray-700">—</span>}
-                          </span>
-                        ) : (
-                          <button onClick={() => startEdit('__salary__', ym, String(val))}
-                            className="w-full text-right text-emerald-400 hover:text-emerald-300 hover:underline">
-                            {val ? `${sym}${val.toLocaleString()}` : <span className="text-gray-700">—</span>}
-                          </button>
-                        )}
-                      </td>
-                    )
-                  })}
-                  <td />
-                </tr>
-
-                {/* Expense item rows — sortable */}
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                  <SortableContext items={itemNames} strategy={verticalListSortingStrategy}>
-                    {itemNames.map(name => (
-                      <SortableExpenseRow
-                        key={name}
-                        name={name}
-                        months={months}
-                        isReadOnly={isReadOnly}
-                        editingItemName={editingItemName}
-                        editingItemValue={editingItemValue}
-                        editCell={editCell}
-                        editValue={editValue}
-                        inputRef={inputRef}
-                        getAmount={getAmount}
-                        fmt={fmt}
-                        onStartEditName={n => { setEditingItemName(n); setEditingItemValue(n) }}
-                        onEditingItemValueChange={setEditingItemValue}
-                        onRenameItem={renameItem}
-                        onCancelRename={() => setEditingItemName(null)}
-                        onStartCellEdit={startEdit}
-                        onCommitEdit={commitEdit}
-                        onEditValueChange={setEditValue}
-                        onKeyDown={handleKeyDown}
-                        onRemoveRow={removeRow}
-                      />
-                    ))}
-                  </SortableContext>
-                </DndContext>
-
-                {/* Add new item */}
-                {!isReadOnly && (
-                  <tr className="bg-gray-900/30">
-                    <td className="sticky left-0 z-10 bg-gray-900/30 px-3 py-2 border-r border-gray-800">
-                      <div className="flex gap-1.5">
-                        <input type="text" className="input text-xs py-1 px-2 flex-1"
-                          placeholder="+ Add expense item"
-                          value={newItemName}
-                          onChange={e => setNewItemName(e.target.value)}
-                          onKeyDown={e => e.key === 'Enter' && addItem()} />
-                        <button onClick={addItem} className="btn-primary text-xs px-2 py-1">Add</button>
-                      </div>
-                    </td>
-                    {months.map(ym => <td key={ym} />)}
-                    <td />
-                  </tr>
+                  </TableCell>
                 )}
+              </TableRow>
+            </TableHead>
 
-                {/* SAVING / REMAINING */}
-                <tr className="bg-gray-800/60 font-semibold border-t border-gray-700">
-                  <td className="sticky left-0 z-10 bg-gray-800 px-4 py-2.5 text-gray-300 border-r border-gray-700">
-                    {activeCurrency === 'CAD' ? 'Remaining' : 'Saving'}
-                  </td>
-                  {months.map(ym => {
-                    const s = getSaving(ym)
-                    return (
-                      <td key={ym} className={`px-3 py-2.5 text-right font-semibold ${
-                        s > 0 ? 'text-emerald-400' : s < 0 ? 'text-red-400' : 'text-gray-600'
-                      }`}>
-                        {getMonth(ym).salary === 0 && s === 0
-                          ? <span className="text-gray-700">—</span>
-                          : <>{s >= 0 ? '' : '-'}{sym}{Math.abs(s).toLocaleString()}</>
-                        }
-                      </td>
-                    )
-                  })}
-                  <td />
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
+            <TableBody>
+              {/* Salary */}
+              <TableRow sx={{ bgcolor: '#0f172a', '& .MuiTableCell-root': { py: 1 } }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: '#0a0f1a', borderRight: '1px solid #1f2937', fontWeight: 700, color: '#34d399', fontSize: 13 }}>
+                  SALARY
+                </TableCell>
+                {months.map(ym => {
+                  const isEditing = editCell?.row === '__salary__' && editCell.col === ym
+                  const val = getMonth(ym).salary
+                  return (
+                    <TableCell key={ym} align="right" sx={{ color: '#34d399' }}>
+                      {isEditing ? (
+                        <CellInput inputRef={inputRef} value={editValue} onChange={setEditValue} onBlur={commitEdit} onKeyDown={handleKeyDown} />
+                      ) : isReadOnly ? (
+                        val ? `${sym}${val.toLocaleString()}` : <span style={{ color: '#374151' }}>—</span>
+                      ) : (
+                        <Box component="button" onClick={() => startEdit('__salary__', ym, String(val))}
+                          sx={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', fontSize: 13, textAlign: 'right', width: '100%', '&:hover': { textDecoration: 'underline' } }}>
+                          {val ? `${sym}${val.toLocaleString()}` : <span style={{ color: '#374151' }}>—</span>}
+                        </Box>
+                      )}
+                    </TableCell>
+                  )
+                })}
+                {!isReadOnly && <TableCell />}
+              </TableRow>
+
+              {/* Expense rows */}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={itemNames} strategy={verticalListSortingStrategy}>
+                  {itemNames.map(name => (
+                    <SortableExpenseRow
+                      key={name}
+                      name={name}
+                      months={months}
+                      isReadOnly={isReadOnly}
+                      editingItemName={editingItemName}
+                      editingItemValue={editingItemValue}
+                      editCell={editCell}
+                      editValue={editValue}
+                      inputRef={inputRef}
+                      getAmount={getAmount}
+                      fmt={fmt}
+                      onStartEditName={n => { setEditingItemName(n); setEditingItemValue(n) }}
+                      onEditingItemValueChange={setEditingItemValue}
+                      onRenameItem={renameItem}
+                      onCancelRename={() => setEditingItemName(null)}
+                      onStartCellEdit={startEdit}
+                      onCommitEdit={commitEdit}
+                      onEditValueChange={setEditValue}
+                      onKeyDown={handleKeyDown}
+                      onRemoveRow={removeRow}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+
+              {/* Add item row */}
+              {!isReadOnly && (
+                <TableRow sx={{ bgcolor: '#0a0f1a' }}>
+                  <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: '#0a0f1a', borderRight: '1px solid #1f2937' }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <input
+                        type="text"
+                        placeholder="+ Add expense item"
+                        value={newItemName}
+                        onChange={e => setNewItemName(e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && addItem()}
+                        style={{ flex: 1, minWidth: 0, background: '#111827', border: '1px solid #374151', borderRadius: 4, padding: '4px 8px', fontSize: 12, color: '#d1d5db', outline: 'none' }}
+                      />
+                      <Button size="small" variant="contained" onClick={addItem} sx={{ minWidth: 0, px: 1.5, fontSize: 12 }}>Add</Button>
+                    </Box>
+                  </TableCell>
+                  {months.map(ym => <TableCell key={ym} />)}
+                  <TableCell />
+                </TableRow>
+              )}
+
+              {/* Saving row */}
+              <TableRow sx={{ bgcolor: '#0f172a', borderTop: '2px solid #374151' }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: '#111827', borderRight: '1px solid #374151', fontWeight: 600, color: 'text.primary', fontSize: 13 }}>
+                  {activeCurrency === 'CAD' ? 'Remaining' : 'Saving'}
+                </TableCell>
+                {months.map(ym => {
+                  const s = getSaving(ym)
+                  return (
+                    <TableCell key={ym} align="right" sx={{ fontWeight: 600, color: s > 0 ? 'success.main' : s < 0 ? 'error.main' : 'text.disabled' }}>
+                      {getMonth(ym).salary === 0 && s === 0
+                        ? <span style={{ color: '#374151' }}>—</span>
+                        : <>{s >= 0 ? '' : '-'}{sym}{Math.abs(s).toLocaleString()}</>
+                      }
+                    </TableCell>
+                  )
+                })}
+                {!isReadOnly && <TableCell />}
+              </TableRow>
+            </TableBody>
+          </Table>
+        </TableContainer>
       )}
-    </div>
+    </Box>
   )
 }
