@@ -164,7 +164,7 @@ export default function TodosPage() {
   const { todos, loading, load, add, update, remove, reorder } = useTodoStore()
   const isReadOnly = useIsReadOnly()
   const [newText, setNewText] = useState('')
-  const [view, setView] = useState<'list' | 'graph'>('list')
+  const [view, setView] = useState<'list' | 'graph'>('graph')
   const [commentTodo, setCommentTodo] = useState<Todo | null>(null)
   const [depsTodo, setDepsTodo] = useState<Todo | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
