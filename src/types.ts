@@ -85,6 +85,7 @@ export interface Todo {
   order: number
   done: boolean
   commentCount?: number
+  dependsOn?: string[]  // IDs of todos that must be completed first
 }
 
 export interface TodoComment {
