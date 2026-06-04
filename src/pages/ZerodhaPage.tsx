@@ -186,7 +186,7 @@ export default function ZerodhaPage() {
                   <TextField
                     label={label}
                     type={key === 'date' ? 'date' : 'number'}
-                    slotProps={{ htmlInput: { step: 'any' }, inputLabel: key === 'date' ? { shrink: true } : {} }}
+                    slotProps={{ htmlInput: { step: 'any' }, inputLabel: { shrink: true } }}
                     size="small"
                     fullWidth
                     {...register(key, { required: true })}
