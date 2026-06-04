@@ -201,8 +201,11 @@ export default function ZerodhaPage() {
               <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Equity R</TableCell>
               <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Equity U</TableCell>
               <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>F&O R</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>F&O U</TableCell>
               <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Commod R</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Commod U</TableCell>
               <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>MF R</TableCell>
+              <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>MF U</TableCell>
               <TableCell align="right">Net Total</TableCell>
               <TableCell align="right">P/L%</TableCell>
               <TableCell padding="checkbox" />
@@ -218,8 +221,11 @@ export default function ZerodhaPage() {
                   <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.equityRealized)}</TableCell>
                   <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.equityUnrealized)}</TableCell>
                   <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.fnoRealized)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.fnoUnrealized)}</TableCell>
                   <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.commoditiesRealized)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.commoditiesUnrealized)}</TableCell>
                   <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.mfRealized)}</TableCell>
+                  <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', md: 'table-cell' } }}>₹{fmtINR(e.mfUnrealized)}</TableCell>
                   <TableCell align="right" sx={{ color: pnlColor(net), fontWeight: 500 }}>₹{fmtINR(net)}</TableCell>
                   <TableCell align="right" sx={{ color: pnlColor(pct), fontWeight: 500 }}>{pct.toFixed(2)}%</TableCell>
                   <TableCell padding="checkbox">
