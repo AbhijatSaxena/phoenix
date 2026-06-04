@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Drawer, Box, Typography, IconButton, Tabs, Tab, TextField, Button,
-  CircularProgress, Divider, Chip, Checkbox, Tooltip,
+  CircularProgress, Divider, Chip, Checkbox,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
@@ -283,42 +283,39 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
               <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', py: 2 }}>No other todos.</Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                {others.map(t => {
+                {others.filter(t => {
                   const isChecked = (todo.dependsOn ?? []).includes(t.id)
-                  const isCyclic = !isChecked && wouldCreateCycle(todos, todo.id, t.id)
+                  return isChecked || !wouldCreateCycle(todos, todo.id, t.id)
+                }).map(t => {
+                  const isChecked = (todo.dependsOn ?? []).includes(t.id)
                   return (
-                    <Tooltip key={t.id} title={isCyclic ? 'Would create a cycle' : ''} placement="left">
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1.5,
-                          p: 1,
-                          borderRadius: 2,
-                          opacity: isCyclic ? 0.3 : 1,
-                          cursor: isCyclic ? 'not-allowed' : 'pointer',
-                          '&:hover': isCyclic ? {} : { bgcolor: 'action.hover' },
-                        }}
-                        onClick={() => !isCyclic && !isReadOnly && toggleDep(t.id)}
+                    <Box
+                      key={t.id}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1.5,
+                        p: 1,
+                        borderRadius: 2,
+                        cursor: isReadOnly ? 'default' : 'pointer',
+                        '&:hover': isReadOnly ? {} : { bgcolor: 'action.hover' },
+                      }}
+                      onClick={() => !isReadOnly && toggleDep(t.id)}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        disabled={isReadOnly}
+                        size="small"
+                        sx={{ p: 0 }}
+                      />
+                      <Typography
+                        variant="body2"
+                        sx={{ flex: 1, color: t.done ? 'text.disabled' : 'text.secondary', textDecoration: t.done ? 'line-through' : 'none', fontSize: 13 }}
                       >
-                        <Checkbox
-                          checked={isChecked}
-                          disabled={isCyclic || isReadOnly}
-                          size="small"
-                          sx={{ p: 0 }}
-                        />
-                        <Typography
-                          variant="body2"
-                          sx={{ flex: 1, color: t.done ? 'text.disabled' : 'text.secondary', textDecoration: t.done ? 'line-through' : 'none', fontSize: 13 }}
-                        >
-                          {t.text}
-                        </Typography>
-                        <Box sx={{ display: 'flex', gap: 0.5 }}>
-                          {t.done && <Chip label="Done" size="small" color="success" sx={{ height: 16, fontSize: 9 }} />}
-                          {isCyclic && <Chip label="Cycle" size="small" color="error" sx={{ height: 16, fontSize: 9 }} />}
-                        </Box>
-                      </Box>
-                    </Tooltip>
+                        {t.text}
+                      </Typography>
+                      {t.done && <Chip label="Done" size="small" color="success" sx={{ height: 16, fontSize: 9 }} />}
+                    </Box>
                   )
                 })}
               </Box>
