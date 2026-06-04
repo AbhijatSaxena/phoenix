@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Box, CircularProgress, Button, Dialog, DialogTitle, DialogContent,
-  List, ListItem, ListItemText, IconButton, Typography, Chip,
+  List, ListItem, ListItemText, IconButton, Typography, Chip, Tooltip,
 } from '@mui/material'
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined'
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined'
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import { useTodoStore } from '../store/todoStore'
 import type { Todo } from '../types'
 import TodoGraph from '../components/TodoGraph'
@@ -12,12 +13,19 @@ import TodoDetailPanel from '../components/TodoDetailPanel'
 import { useIsReadOnly } from '../store/authStore'
 
 export default function TodosPage() {
-  const { todos, archivedTodos, loading, loadingArchived, load, loadArchived, update, unarchive } = useTodoStore()
+  const { todos, archivedTodos, loading, loadingArchived, load, loadArchived, update, unarchive, archive } = useTodoStore()
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [showCompleted, setShowCompleted] = useState(false)
   const isReadOnly = useIsReadOnly()
 
   useEffect(() => { load() }, [])
+
+  // Todos still needed as deps by active todos stay in the graph even if done
+  const activeTodos = todos.filter(t => !t.done)
+  const activeDepsSet = new Set(activeTodos.flatMap(t => t.dependsOn ?? []))
+  const completedHidden = todos.filter(t => t.done && !activeDepsSet.has(t.id))
+  const graphTodos = todos.filter(t => !t.done || activeDepsSet.has(t.id))
 
   async function handleDepsChange(todo: Todo, deps: string[]) {
     const updated = { ...todo, dependsOn: deps }
@@ -51,7 +59,17 @@ export default function TodosPage() {
         />
       )}
 
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 1.5 }}>
+        <Button
+          size="small"
+          variant="outlined"
+          color="inherit"
+          startIcon={<CheckCircleOutlinedIcon sx={{ fontSize: 14 }} />}
+          onClick={() => setShowCompleted(true)}
+          sx={{ fontSize: 11, textTransform: 'none', color: 'text.secondary', borderColor: '#374151' }}
+        >
+          Completed{completedHidden.length > 0 ? ` (${completedHidden.length})` : ''}
+        </Button>
         <Button
           size="small"
           variant="outlined"
@@ -64,7 +82,50 @@ export default function TodosPage() {
         </Button>
       </Box>
 
-      <TodoGraph todos={todos} onSelect={handleSelect} />
+      <TodoGraph todos={graphTodos} onSelect={handleSelect} />
+
+      {/* Completed todos dialog */}
+      <Dialog open={showCompleted} onClose={() => setShowCompleted(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Completed Todos</DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {completedHidden.length === 0 && (
+            <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', py: 4 }}>
+              No completed todos.
+            </Typography>
+          )}
+          <List disablePadding>
+            {completedHidden.map(t => (
+              <ListItem
+                key={t.id}
+                divider
+                secondaryAction={
+                  !isReadOnly && (
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Tooltip title="Mark as not done">
+                        <IconButton size="small" onClick={() => update({ ...t, done: false })} sx={{ color: 'text.secondary', '&:hover': { color: 'success.main' } }}>
+                          <CheckCircleOutlinedIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Archive">
+                        <IconButton size="small" onClick={() => archive(t.id)} sx={{ color: 'text.secondary', '&:hover': { color: 'warning.main' } }}>
+                          <InventoryOutlinedIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  )
+                }
+              >
+                <ListItemText
+                  primary={t.text}
+                  slotProps={{
+                    primary: { style: { fontSize: 13, textDecoration: 'line-through', color: '#6b7280' } },
+                  }}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+      </Dialog>
 
       {/* Archived todos dialog */}
       <Dialog open={showArchived} onClose={() => setShowArchived(false)} maxWidth="sm" fullWidth>
@@ -85,9 +146,11 @@ export default function TodosPage() {
                 divider
                 secondaryAction={
                   !isReadOnly && (
-                    <IconButton size="small" onClick={() => unarchive(t.id)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
-                      <UnarchiveOutlinedIcon sx={{ fontSize: 16 }} />
-                    </IconButton>
+                    <Tooltip title="Unarchive">
+                      <IconButton size="small" onClick={() => unarchive(t.id)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
+                        <UnarchiveOutlinedIcon sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Tooltip>
                   )
                 }
               >
