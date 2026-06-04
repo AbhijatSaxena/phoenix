@@ -84,6 +84,7 @@ export interface Todo {
   text: string
   order: number
   done: boolean
+  archived?: boolean
   commentCount?: number
   dependsOn?: string[]  // IDs of todos that must be completed first
 }
