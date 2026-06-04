@@ -19,9 +19,8 @@ import { useTodoStore } from '../store/todoStore'
 import type { Todo } from '../types'
 import { useIsReadOnly } from '../store/authStore'
 import Spinner from '../components/Spinner'
-import TodoCommentPanel from '../components/TodoCommentPanel'
 import TodoGraph from '../components/TodoGraph'
-import DependencyPanel from '../components/DependencyPanel'
+import TodoDetailPanel from '../components/TodoDetailPanel'
 
 interface RowProps {
   todo: Todo
@@ -165,8 +164,7 @@ export default function TodosPage() {
   const isReadOnly = useIsReadOnly()
   const [newText, setNewText] = useState('')
   const [view, setView] = useState<'list' | 'graph'>('graph')
-  const [commentTodo, setCommentTodo] = useState<Todo | null>(null)
-  const [depsTodo, setDepsTodo] = useState<Todo | null>(null)
+  const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { load() }, [])
@@ -204,11 +202,10 @@ export default function TodosPage() {
   async function handleDepsChange(todo: Todo, deps: string[]) {
     const updated = { ...todo, dependsOn: deps }
     await update(updated)
-    setDepsTodo(updated)
+    setSelectedTodo(updated)
   }
 
-  const handleComment = useCallback((todo: Todo) => setCommentTodo(todo), [])
-  const handleManageDeps = useCallback((todo: Todo) => setDepsTodo(todo), [])
+  const handleSelect = useCallback((todo: Todo) => setSelectedTodo(todo), [])
 
   if (loading) return <div className="flex items-center justify-center h-64"><Spinner /></div>
 
@@ -217,15 +214,12 @@ export default function TodosPage() {
 
   return (
     <div className={`space-y-4 ${view === 'list' ? 'max-w-2xl' : 'w-full'}`}>
-      {commentTodo && (
-        <TodoCommentPanel todo={commentTodo} onClose={() => setCommentTodo(null)} />
-      )}
-      {depsTodo && (
-        <DependencyPanel
-          todo={depsTodo}
+      {selectedTodo && (
+        <TodoDetailPanel
+          todo={todos.find(t => t.id === selectedTodo.id) ?? selectedTodo}
           todos={todos}
-          onClose={() => setDepsTodo(null)}
-          onChange={handleDepsChange}
+          onClose={() => setSelectedTodo(null)}
+          onDepsChange={handleDepsChange}
         />
       )}
 
@@ -281,8 +275,8 @@ export default function TodosPage() {
                       onToggle={handleToggle}
                       onEdit={(t, text) => update({ ...t, text })}
                       onDelete={remove}
-                      onComment={handleComment}
-                      onManageDeps={handleManageDeps}
+                      onComment={handleSelect}
+                      onManageDeps={handleSelect}
                     />
                   ))}
                 </SortableContext>
@@ -304,8 +298,8 @@ export default function TodosPage() {
                     onToggle={handleToggle}
                     onEdit={(t, text) => update({ ...t, text })}
                     onDelete={remove}
-                    onComment={handleComment}
-                    onManageDeps={handleManageDeps}
+                    onComment={handleSelect}
+                    onManageDeps={handleSelect}
                   />
                 ))}
               </div>
@@ -313,12 +307,7 @@ export default function TodosPage() {
           )}
         </>
       ) : (
-        <TodoGraph
-          todos={todos}
-          onToggle={handleToggle}
-          onComment={handleComment}
-          onManageDeps={handleManageDeps}
-        />
+        <TodoGraph todos={todos} onSelect={handleSelect} />
       )}
     </div>
   )

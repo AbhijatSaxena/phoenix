@@ -6,7 +6,7 @@ interface TodoState {
   todos: Todo[]
   loading: boolean
   load: () => Promise<void>
-  add: (text: string) => Promise<void>
+  add: (text: string) => Promise<Todo>
   update: (todo: Todo) => Promise<void>
   remove: (id: string) => Promise<void>
   reorder: (todos: Todo[]) => Promise<void>
@@ -34,6 +34,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     const todo: Todo = { id: newId(), text, order, done: false }
     await saveTodo(todo as unknown as Record<string, unknown>)
     set(state => ({ todos: [...state.todos, todo] }))
+    return todo
   },
 
   update: async (todo: Todo) => {
