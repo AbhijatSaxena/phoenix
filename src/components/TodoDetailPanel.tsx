@@ -283,12 +283,21 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
               <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', py: 2 }}>No other todos.</Typography>
             ) : (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                {others.filter(t => {
-                  const isChecked = (todo.dependsOn ?? []).includes(t.id)
-                  return isChecked || !wouldCreateCycle(todos, todo.id, t.id)
-                }).map(t => {
-                  const isChecked = (todo.dependsOn ?? []).includes(t.id)
-                  return (
+                {(() => {
+                  const linkable = others.filter(t => {
+                    const isChecked = (todo.dependsOn ?? []).includes(t.id)
+                    return isChecked || !wouldCreateCycle(todos, todo.id, t.id)
+                  })
+                  const firstDoneIdx = linkable.findIndex(t => t.done)
+                  return linkable.map((t, i) => {
+                    const isChecked = (todo.dependsOn ?? []).includes(t.id)
+                    return (
+                      <Box key={t.id}>
+                        {i === firstDoneIdx && firstDoneIdx > 0 && (
+                          <Divider sx={{ my: 1 }}>
+                            <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>Completed</Typography>
+                          </Divider>
+                        )}
                     <Box
                       key={t.id}
                       sx={{
@@ -316,8 +325,10 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
                       </Typography>
                       {t.done && <Chip label="Done" size="small" color="success" sx={{ height: 16, fontSize: 9 }} />}
                     </Box>
+                    </Box>
                   )
-                })}
+                  })
+                })()}
               </Box>
             )}
           </Box>
