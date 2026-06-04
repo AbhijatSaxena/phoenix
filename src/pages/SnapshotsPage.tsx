@@ -90,7 +90,7 @@ export default function SnapshotsPage() {
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}><CircularProgress /></Box>
 
   return (
-    <Box sx={{ maxWidth: 860 }}>
+    <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>Snapshots</Typography>
         {!isReadOnly && (

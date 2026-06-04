@@ -97,7 +97,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <Box sx={{ maxWidth: 860 }}>
+    <Box>
       {/* Summary */}
       <Grid container spacing={1.5} sx={{ mb: 3 }}>
         {summaryCards.map(({ label, value, color, large }) => (

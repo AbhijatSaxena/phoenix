@@ -152,7 +152,7 @@ export default function RegentPage() {
   const keepColor = iGetToKeep >= 0 ? 'success.main' : 'error.main'
 
   return (
-    <Box sx={{ maxWidth: 800 }}>
+    <Box>
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Regent Property</Typography>
 
       <Grid container spacing={2.5}>

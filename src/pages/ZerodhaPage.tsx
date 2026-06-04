@@ -115,7 +115,7 @@ export default function ZerodhaPage() {
   const pnlColor = (v: number | null) => v === null ? 'text.secondary' : v >= 0 ? 'success.main' : 'error.main'
 
   return (
-    <Box sx={{ maxWidth: 900 }}>
+    <Box>
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Zerodha Portfolio</Typography>
 
       <Grid container spacing={1.5} sx={{ mb: 3 }}>
