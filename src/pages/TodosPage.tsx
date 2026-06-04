@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import {
   Box, CircularProgress, Button, Dialog, DialogTitle, DialogContent,
   List, ListItem, ListItemText, IconButton, Typography, Chip, Tooltip,
+  TextField, InputAdornment,
 } from '@mui/material'
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined'
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import AddIcon from '@mui/icons-material/Add'
 import { useTodoStore } from '../store/todoStore'
 import type { Todo } from '../types'
 import TodoGraph from '../components/TodoGraph'
@@ -13,11 +15,22 @@ import TodoDetailPanel from '../components/TodoDetailPanel'
 import { useIsReadOnly } from '../store/authStore'
 
 export default function TodosPage() {
-  const { todos, archivedTodos, loading, loadingArchived, load, loadArchived, update, unarchive, archive } = useTodoStore()
+  const { todos, archivedTodos, loading, loadingArchived, load, loadArchived, add, update, unarchive, archive } = useTodoStore()
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
+  const [newText, setNewText] = useState('')
+  const [adding, setAdding] = useState(false)
   const isReadOnly = useIsReadOnly()
+
+  async function handleAddTodo() {
+    const text = newText.trim()
+    if (!text) return
+    setAdding(true)
+    await add(text)
+    setNewText('')
+    setAdding(false)
+  }
 
   useEffect(() => { load() }, [])
 
@@ -57,6 +70,31 @@ export default function TodosPage() {
           onClose={() => setSelectedTodo(null)}
           onDepsChange={handleDepsChange}
         />
+      )}
+
+      {!isReadOnly && (
+        <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+          <TextField
+            size="small"
+            fullWidth
+            placeholder="New todo… (press Enter)"
+            value={newText}
+            onChange={e => setNewText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleAddTodo()}
+            disabled={adding}
+            slotProps={{
+              input: {
+                endAdornment: newText.trim() ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" onClick={handleAddTodo} disabled={adding} edge="end">
+                      {adding ? <CircularProgress size={16} /> : <AddIcon sx={{ fontSize: 18 }} />}
+                    </IconButton>
+                  </InputAdornment>
+                ) : undefined,
+              },
+            }}
+          />
+        </Box>
       )}
 
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, mb: 1.5 }}>
