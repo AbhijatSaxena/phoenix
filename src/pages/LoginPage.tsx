@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  Box, Paper, Typography, TextField, Button, Alert, CircularProgress,
+} from '@mui/material'
 import { useAuthStore } from '../store/authStore'
 
 export default function LoginPage() {
@@ -10,7 +13,6 @@ export default function LoginPage() {
   const [loading, setLoading]   = useState(false)
   const navigate = useNavigate()
 
-  // Navigate only after onAuthStateChanged has resolved the user + role
   useEffect(() => {
     if (user) navigate('/dashboard', { replace: true })
   }, [user])
@@ -21,7 +23,6 @@ export default function LoginPage() {
     setLoading(true)
     try {
       await signIn(email, password)
-      // don't navigate here — useEffect above handles it once store is updated
     } catch {
       setError('Invalid email or password.')
       setLoading(false)
@@ -29,38 +30,45 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
-      <div className="card w-full max-w-sm">
-        <h1 className="text-xl font-bold text-white mb-1">Personal Management</h1>
-        <p className="text-gray-500 text-sm mb-6">Sign in to continue</p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="label block mb-1">Email</label>
-            <input
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', display: 'flex', alignItems: 'center', justifyContent: 'center', px: 2 }}>
+      <Paper elevation={0} sx={{ width: '100%', maxWidth: 360, p: 4, border: '1px solid', borderColor: 'divider' }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }} gutterBottom>Personal Management</Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>Sign in to continue</Typography>
+
+        <form onSubmit={handleSubmit}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <TextField
+              label="Email"
               type="email"
-              className="input"
               value={email}
               onChange={e => setEmail(e.target.value)}
               required
               autoFocus
+              size="small"
+              fullWidth
             />
-          </div>
-          <div>
-            <label className="label block mb-1">Password</label>
-            <input
+            <TextField
+              label="Password"
               type="password"
-              className="input"
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
+              size="small"
+              fullWidth
             />
-          </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button type="submit" disabled={loading} className="btn-primary w-full">
-            {loading ? 'Signing in…' : 'Sign in'}
-          </button>
+            {error && <Alert severity="error" sx={{ py: 0.5 }}>{error}</Alert>}
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+              fullWidth
+              sx={{ mt: 1 }}
+            >
+              {loading ? <CircularProgress size={18} color="inherit" /> : 'Sign in'}
+            </Button>
+          </Box>
         </form>
-      </div>
-    </div>
+      </Paper>
+    </Box>
   )
 }

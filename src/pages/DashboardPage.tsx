@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react'
+import {
+  Box, Grid, Paper, Typography, Button, CircularProgress, Collapse,
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField,
+} from '@mui/material'
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
+import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
 import { useDashboardStore, computeNetInr } from '../store/dashboardStore'
 import { useRatesStore } from '../store/ratesStore'
 import { useSnapshotStore } from '../store/snapshotStore'
 import type { Account, Category } from '../types'
 import { fmtINR, fmtCurrency } from '../lib/fmt'
-import Spinner from '../components/Spinner'
-import Modal from '../components/Modal'
 import { useForm } from 'react-hook-form'
 import { useIsReadOnly } from '../store/authStore'
-import Tooltip from '../components/Tooltip'
 
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms
@@ -22,17 +26,13 @@ function timeAgo(ms: number): string {
   return new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
 
-const CATEGORIES: { key: Category; label: string }[] = [
-  { key: 'liquid',       label: 'Liquid' },
-  { key: 'appreciating', label: 'Appreciating Assets' },
-  { key: 'depreciating', label: 'Depreciating Assets' },
+const CATEGORIES: { key: Category; label: string; color: string }[] = [
+  { key: 'liquid',       label: 'Liquid',              color: '#38bdf8' },
+  { key: 'appreciating', label: 'Appreciating Assets', color: '#34d399' },
+  { key: 'depreciating', label: 'Depreciating Assets', color: '#fbbf24' },
 ]
 
-interface EditForm {
-  usd: number
-  cad: number
-  inr: number
-}
+interface EditForm { usd: number; cad: number; inr: number }
 
 export default function DashboardPage() {
   const { accounts, loading, load, update } = useDashboardStore()
@@ -43,22 +43,18 @@ export default function DashboardPage() {
   const [snapshotNote, setSnapshotNote] = useState('')
   const [showSnapshotModal, setShowSnapshotModal] = useState(false)
   const [savingSnapshot, setSavingSnapshot] = useState(false)
-  const [collapsed, setCollapsed] = useState<Record<Category, boolean>>({
-    liquid: false, appreciating: false, depreciating: false,
-  })
+  const [collapsed, setCollapsed] = useState<Record<Category, boolean>>({ liquid: false, appreciating: false, depreciating: false })
 
   const { register, handleSubmit, reset } = useForm<EditForm>()
   const isReadOnly = useIsReadOnly()
 
-  useEffect(() => { load() }, []) // re-runs on every mount (route navigation remounts)
+  useEffect(() => { load() }, [])
 
   const usdInr = rates?.usdInr ?? 84
   const cadInr = rates?.cadInr ?? 62
 
   const byCategory = (cat: Category) => accounts.filter(a => a.category === cat)
-
-  const sectionTotal = (cat: Category) =>
-    byCategory(cat).reduce((sum, a) => sum + computeNetInr(a, usdInr, cadInr), 0)
+  const sectionTotal = (cat: Category) => byCategory(cat).reduce((s, a) => s + computeNetInr(a, usdInr, cadInr), 0)
 
   const liquid       = sectionTotal('liquid')
   const appreciating = sectionTotal('appreciating')
@@ -91,177 +87,181 @@ export default function DashboardPage() {
     setSnapshotNote('')
   }
 
-  if (loading) {
-    return <div className="flex items-center justify-center h-64"><Spinner /></div>
-  }
+  if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}><CircularProgress /></Box>
+
+  const summaryCards = [
+    { label: 'Liquid',       value: liquid,       color: '#38bdf8' },
+    { label: 'Appreciating', value: appreciating, color: '#34d399' },
+    { label: 'Depreciating', value: depreciating, color: '#fbbf24' },
+    { label: 'Net Worth',    value: netWorth,     color: '#f3f4f6', large: true },
+  ]
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Net worth summary cards */}
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { label: 'Liquid',       value: liquid,       color: 'text-sky-400' },
-          { label: 'Appreciating', value: appreciating, color: 'text-emerald-400' },
-          { label: 'Depreciating', value: depreciating, color: 'text-amber-400' },
-          { label: 'Net Worth',    value: netWorth,     color: 'text-white text-lg font-bold' },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="card text-center">
-            <p className="label mb-1">{label}</p>
-            <p className={`font-semibold ${color}`}>₹{fmtINR(value)}</p>
-          </div>
+    <Box sx={{ maxWidth: 860 }}>
+      {/* Summary */}
+      <Grid container spacing={1.5} sx={{ mb: 3 }}>
+        {summaryCards.map(({ label, value, color, large }) => (
+          <Grid key={label} size={{ xs: 6 }}>
+            <Paper elevation={0} sx={{ p: 2, textAlign: 'center', border: '1px solid #1f2937' }}>
+              <Typography variant="overline" sx={{ fontSize: 10, color: 'text.secondary', display: 'block' }}>{label}</Typography>
+              <Typography variant={large ? 'h6' : 'subtitle1'} sx={{ fontWeight: 600, color }}>
+                ₹{fmtINR(value)}
+              </Typography>
+            </Paper>
+          </Grid>
         ))}
-      </div>
+      </Grid>
 
-      {/* Save Snapshot button */}
+      {/* Snapshot button */}
       {!isReadOnly && (
-        <div className="flex justify-end">
-          <button onClick={() => setShowSnapshotModal(true)} className="btn-primary text-sm">
-            📸 Save Snapshot
-          </button>
-        </div>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+          <Button variant="outlined" size="small" startIcon={<CameraAltOutlinedIcon />} onClick={() => setShowSnapshotModal(true)}>
+            Save Snapshot
+          </Button>
+        </Box>
       )}
 
       {/* Account sections */}
-      {CATEGORIES.map(({ key, label }) => (
-        <section key={key} className="card space-y-0">
-          <button
-            className="w-full flex items-center justify-between py-1 mb-3"
+      {CATEGORIES.map(({ key, label, color }) => (
+        <Paper key={key} elevation={0} sx={{ mb: 2, border: '1px solid #1f2937', overflow: 'hidden' }}>
+          <Box
+            component="button"
             onClick={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
+            sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, background: 'none', border: 'none', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
           >
-            <h2 className="font-semibold text-white">{label}</h2>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-400">₹{fmtINR(sectionTotal(key))}</span>
-              <span className="text-gray-600 text-sm">{collapsed[key] ? '▶' : '▼'}</span>
-            </div>
-          </button>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color }}>{label}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Typography variant="body2" color="text.secondary">₹{fmtINR(sectionTotal(key))}</Typography>
+              {collapsed[key] ? <ExpandMoreIcon fontSize="small" sx={{ color: 'text.disabled' }} /> : <ExpandLessIcon fontSize="small" sx={{ color: 'text.disabled' }} />}
+            </Box>
+          </Box>
 
-          {!collapsed[key] && (
-            <div className="divide-y divide-gray-800">
+          <Collapse in={!collapsed[key]}>
+            <Box sx={{ borderTop: '1px solid #1f2937' }}>
               {/* Column headers */}
-              <div className="grid grid-cols-[1fr_auto] sm:grid-cols-6 text-xs text-gray-600 pb-1.5 px-1">
-                <span className="sm:col-span-2">Account</span>
-                <span className="hidden sm:block text-right">USD</span>
-                <span className="hidden sm:block text-right">CAD</span>
-                <span className="hidden sm:block text-right">INR</span>
-                <span className="text-right">NET (INR)</span>
-              </div>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr auto', sm: '5fr 2fr 2fr 1fr 2fr' }, px: 2, py: 1, bgcolor: '#0f172a' }}>
+                <Typography variant="caption" color="text.disabled">Account</Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>USD</Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>CAD</Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>INR</Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ textAlign: 'right' }}>NET (INR)</Typography>
+              </Box>
 
               {byCategory(key).map(account => {
                 const net = computeNetInr(account, usdInr, cadInr)
                 const clickable = !account.derived && !isReadOnly
                 return (
-                  <div
+                  <Box
                     key={account.id}
-                    className={`grid grid-cols-[1fr_auto] sm:grid-cols-6 py-2 px-1 text-sm ${
-                      clickable ? 'cursor-pointer hover:bg-gray-800 rounded' : ''
-                    }`}
                     onClick={() => clickable && openEdit(account)}
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr auto', sm: '5fr 2fr 2fr 1fr 2fr' },
+                      px: 2,
+                      py: 1,
+                      borderTop: '1px solid #1f2937',
+                      cursor: clickable ? 'pointer' : 'default',
+                      '&:hover': clickable ? { bgcolor: 'action.hover' } : {},
+                    }}
                   >
-                    <span className="sm:col-span-2 flex flex-col justify-center min-w-0">
-                      <Tooltip content={account.name} className="flex items-center gap-1.5 min-w-0">
-                        <span className="text-gray-200 truncate">{account.name}</span>
+                    <Box>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2" noWrap sx={{ color: 'text.primary', maxWidth: 200 }}>
+                          {account.name}
+                        </Typography>
                         {account.derived && (
-                          <span className="text-[10px] text-gray-600 border border-gray-700 px-1 rounded shrink-0">
+                          <Typography variant="caption" sx={{ color: 'text.disabled', border: '1px solid #374151', px: 0.5, borderRadius: 0.5, fontSize: 10 }}>
                             {account.derived}
-                          </span>
+                          </Typography>
                         )}
-                      </Tooltip>
+                      </Box>
                       {account.updatedAt && (
-                        <span className="text-[10px] text-gray-600 mt-0.5">
-                          {timeAgo(account.updatedAt)}
-                        </span>
+                        <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>{timeAgo(account.updatedAt)}</Typography>
                       )}
-                    </span>
-                    <span className="hidden sm:block text-right text-gray-400">
+                    </Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right', alignSelf: 'center' }}>
                       {account.usd !== 0 ? fmtCurrency(account.usd, 'USD') : '—'}
-                    </span>
-                    <span className="hidden sm:block text-right text-gray-400">
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right', alignSelf: 'center' }}>
                       {account.cad !== 0 ? fmtCurrency(account.cad, 'CAD') : '—'}
-                    </span>
-                    <span className="hidden sm:block text-right text-gray-400">
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right', alignSelf: 'center' }}>
                       {account.inr !== 0 ? `₹${fmtINR(account.inr)}` : '—'}
-                    </span>
-                    <span className={`text-right font-medium ${net < 0 ? 'negative' : 'text-gray-100'}`}>
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ fontWeight: 500, textAlign: 'right', alignSelf: 'center', color: net < 0 ? 'error.main' : 'text.primary' }}
+                    >
                       ₹{fmtINR(net)}
-                    </span>
-                  </div>
+                    </Typography>
+                  </Box>
                 )
               })}
-
               {byCategory(key).length === 0 && (
-                <p className="text-sm text-gray-600 py-2 px-1">No accounts</p>
+                <Typography variant="body2" color="text.disabled" sx={{ px: 2, py: 1.5 }}>No accounts</Typography>
               )}
-            </div>
-          )}
-        </section>
+            </Box>
+          </Collapse>
+        </Paper>
       ))}
 
-      {/* Edit modal */}
-      {editing && (
-        <Modal title={`Edit: ${editing.name}`} onClose={() => setEditing(null)}>
-          <form onSubmit={handleSubmit(onSubmitEdit)} className="space-y-4">
+      {/* Edit dialog */}
+      <Dialog open={!!editing} onClose={() => setEditing(null)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>Edit: {editing?.name}</DialogTitle>
+        <form onSubmit={handleSubmit(onSubmitEdit)}>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
             {(['usd', 'cad', 'inr'] as const).map(field => (
-              <div key={field}>
-                <label className="label block mb-1">{field.toUpperCase()} Amount</label>
-                <input
-                  type="number"
-                  step="any"
-                  className="input"
-                  {...register(field, { valueAsNumber: true })}
-                />
-              </div>
-            ))}
-            <div className="flex gap-2 pt-2">
-              <button type="submit" className="btn-primary flex-1">Save</button>
-              <button type="button" onClick={() => setEditing(null)} className="btn-ghost flex-1">Cancel</button>
-            </div>
-          </form>
-        </Modal>
-      )}
-
-      {/* Snapshot modal */}
-      {showSnapshotModal && (
-        <Modal title="Save Snapshot" onClose={() => setShowSnapshotModal(false)}>
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-3 text-sm">
-              {[
-                { label: 'Liquid',       value: liquid },
-                { label: 'Appreciating', value: appreciating },
-                { label: 'Depreciating', value: depreciating },
-              ].map(({ label, value }) => (
-                <div key={label} className="bg-gray-800 rounded-lg p-3 text-center">
-                  <p className="label mb-1">{label}</p>
-                  <p className="text-white font-medium text-xs">₹{fmtINR(value)}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm text-gray-400">
-              Total: <span className="text-white font-semibold">₹{fmtINR(netWorth)}</span>
-            </p>
-            <div>
-              <label className="label block mb-1">Note (optional)</label>
-              <input
-                type="text"
-                className="input"
-                placeholder="e.g. Salary came, crypto went up..."
-                value={snapshotNote}
-                onChange={e => setSnapshotNote(e.target.value)}
+              <TextField
+                key={field}
+                label={`${field.toUpperCase()} Amount`}
+                type="number"
+                slotProps={{ htmlInput: { step: 'any' } }}
+                size="small"
+                fullWidth
+                {...register(field, { valueAsNumber: true })}
               />
-            </div>
-            <div className="flex gap-2 pt-1">
-              <button
-                onClick={handleSaveSnapshot}
-                disabled={savingSnapshot}
-                className="btn-primary flex-1 flex items-center justify-center gap-2"
-              >
-                {savingSnapshot ? <Spinner size="sm" /> : null}
-                Save
-              </button>
-              <button onClick={() => setShowSnapshotModal(false)} className="btn-ghost flex-1">Cancel</button>
-            </div>
-          </div>
-        </Modal>
-      )}
-    </div>
+            ))}
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button onClick={() => setEditing(null)} color="inherit">Cancel</Button>
+            <Button type="submit" variant="contained">Save</Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Snapshot dialog */}
+      <Dialog open={showSnapshotModal} onClose={() => setShowSnapshotModal(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>Save Snapshot</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={1} sx={{ mb: 2 }}>
+            {[['Liquid', liquid], ['Appreciating', appreciating], ['Depreciating', depreciating]].map(([l, v]) => (
+              <Grid key={String(l)} size={{ xs: 4 }}>
+                <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: '#0f172a', border: '1px solid #1f2937' }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>{l}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>₹{fmtINR(Number(v))}</Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Total: <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>₹{fmtINR(netWorth)}</Box>
+          </Typography>
+          <TextField
+            label="Note (optional)"
+            size="small"
+            fullWidth
+            placeholder="e.g. Salary came, crypto went up..."
+            value={snapshotNote}
+            onChange={e => setSnapshotNote(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setShowSnapshotModal(false)} color="inherit">Cancel</Button>
+          <Button onClick={handleSaveSnapshot} variant="contained" disabled={savingSnapshot}>
+            {savingSnapshot ? <CircularProgress size={16} color="inherit" /> : 'Save'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   )
 }
