@@ -1,116 +1,154 @@
-import { useMemo } from 'react'
-import {
-  ReactFlow,
-  Background,
-  Controls,
-  Handle,
-  Position,
-  MarkerType,
-  type NodeProps,
-  type Node,
-  type Edge,
-} from '@xyflow/react'
-import '@xyflow/react/dist/style.css'
+import { useMemo, useRef, useState, useEffect } from 'react'
+import { Box, Paper, Typography, Chip } from '@mui/material'
 import * as dagre from '@dagrejs/dagre'
 import type { Todo } from '../types'
 
-const NODE_W = 240
-const NODE_H = 96
+const NODE_W = 220
+const NODE_H = 90
 
-function layoutNodes(nodes: Node[], edges: Edge[]): Node[] {
+interface LayoutNode {
+  todo: Todo
+  x: number
+  y: number
+  blocked: boolean
+}
+
+interface Edge {
+  source: string
+  target: string
+  done: boolean
+  points: { x1: number; y1: number; x2: number; y2: number }
+}
+
+function buildLayout(todos: Todo[]): { nodes: LayoutNode[]; edges: Edge[]; width: number; height: number } {
   const g = new dagre.graphlib.Graph()
   g.setDefaultEdgeLabel(() => ({}))
-  g.setGraph({ rankdir: 'TB', ranksep: 80, nodesep: 50 })
-  nodes.forEach(n => g.setNode(n.id, { width: NODE_W, height: NODE_H }))
-  edges.forEach(e => g.setEdge(e.source, e.target))
+  g.setGraph({ rankdir: 'TB', ranksep: 80, nodesep: 50, marginx: 40, marginy: 40 })
+
+  todos.forEach(t => g.setNode(t.id, { width: NODE_W, height: NODE_H }))
+  todos.forEach(t => (t.dependsOn ?? []).forEach(depId => {
+    if (todos.find(x => x.id === depId)) g.setEdge(depId, t.id)
+  }))
+
   dagre.layout(g)
-  return nodes.map(n => {
-    const pos = g.node(n.id)
-    return { ...n, position: { x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2 } }
+
+  const isBlocked = (t: Todo) => (t.dependsOn ?? []).some(id => !todos.find(x => x.id === id)?.done)
+
+  const nodes: LayoutNode[] = todos.map(t => {
+    const pos = g.node(t.id)
+    return { todo: t, x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2, blocked: isBlocked(t) }
   })
+
+  const graphInfo = g.graph()
+  const width  = (graphInfo.width  ?? 600) + 80
+  const height = (graphInfo.height ?? 400) + 80
+
+  const edges: Edge[] = todos.flatMap(t =>
+    (t.dependsOn ?? []).flatMap(depId => {
+      const src = nodes.find(n => n.todo.id === depId)
+      const tgt = nodes.find(n => n.todo.id === t.id)
+      if (!src || !tgt) return []
+      const depDone = todos.find(x => x.id === depId)?.done ?? false
+      return [{
+        source: depId,
+        target: t.id,
+        done: depDone,
+        points: {
+          x1: src.x + NODE_W / 2,
+          y1: src.y + NODE_H,
+          x2: tgt.x + NODE_W / 2,
+          y2: tgt.y,
+        },
+      }]
+    })
+  )
+
+  return { nodes, edges, width, height }
 }
 
-interface NodeData extends Record<string, unknown> {
-  todo: Todo
-  blocked: boolean
-  onSelect: (todo: Todo) => void
+interface NodeCardProps {
+  node: LayoutNode
+  onClick: (todo: Todo) => void
 }
 
-function TodoNode({ data }: NodeProps) {
-  const { todo, blocked, onSelect } = data as NodeData
+function NodeCard({ node, onClick }: NodeCardProps) {
+  const { todo, x, y, blocked } = node
   const status = todo.done ? 'done' : blocked ? 'blocked' : 'available'
-
-  const accentColor = status === 'done' ? '#374151' : status === 'blocked' ? '#dc2626' : '#3b82f6'
-  const bgColor     = status === 'done' ? '#111827' : status === 'blocked' ? '#0f0a0a' : '#0f172a'
-  const borderColor = status === 'done' ? '#374151' : status === 'blocked' ? '#7f1d1d' : '#1d4ed8'
+  const accentColor = status === 'done' ? '#374151' : status === 'blocked' ? '#dc2626' : '#2563eb'
+  const borderColor = status === 'done' ? '#1f2937' : status === 'blocked' ? '#7f1d1d' : '#1e3a8a'
+  const statusLabel = status === 'done' ? '✓ Done' : status === 'blocked' ? '🔒 Blocked' : '● Ready'
+  const statusColor = status === 'done' ? '#6b7280' : status === 'blocked' ? '#dc2626' : '#60a5fa'
 
   return (
-    <div
-      onClick={() => onSelect(todo)}
-      style={{
+    <Paper
+      onClick={() => onClick(todo)}
+      elevation={0}
+      sx={{
+        position: 'absolute',
+        left: x,
+        top: y,
         width: NODE_W,
         height: NODE_H,
-        background: bgColor,
+        cursor: 'pointer',
         border: `1.5px solid ${borderColor}`,
-        borderRadius: 10,
         borderLeft: `4px solid ${accentColor}`,
+        borderRadius: '10px',
+        bgcolor: status === 'done' ? '#0d1117' : status === 'blocked' ? '#0f0a0a' : '#0f172a',
         opacity: status === 'done' ? 0.65 : 1,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
-        padding: '10px 12px',
-        cursor: 'pointer',
+        p: '10px 12px',
         transition: 'box-shadow 0.15s, border-color 0.15s',
-        boxShadow: status === 'available' ? '0 0 0 1px rgba(59,130,246,0.15)' : 'none',
+        boxShadow: status === 'available' ? '0 0 0 1px rgba(37,99,235,0.15)' : 'none',
+        '&:hover': {
+          boxShadow: `0 0 0 2px ${accentColor}66`,
+        },
+        userSelect: 'none',
       }}
-      onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 0 2px ${accentColor}55` }}
-      onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = status === 'available' ? '0 0 0 1px rgba(59,130,246,0.15)' : 'none' }}
     >
-      <Handle type="target" position={Position.Top}    style={{ background: '#4b5563', width: 8, height: 8, top: -5 }} />
-
-      {/* Todo text */}
-      <span style={{
-        fontSize: 12,
-        lineHeight: 1.45,
-        color: status === 'done' ? '#6b7280' : status === 'blocked' ? '#9ca3af' : '#e5e7eb',
-        textDecoration: todo.done ? 'line-through' : 'none',
-        wordBreak: 'break-word',
-        flex: 1,
-      }}>
+      <Typography
+        variant="body2"
+        sx={{
+          fontSize: 12,
+          lineHeight: 1.45,
+          color: status === 'done' ? '#6b7280' : status === 'blocked' ? '#9ca3af' : '#e5e7eb',
+          textDecoration: todo.done ? 'line-through' : 'none',
+          wordBreak: 'break-word',
+          flex: 1,
+          overflow: 'hidden',
+          display: '-webkit-box',
+          WebkitLineClamp: 3,
+          WebkitBoxOrient: 'vertical',
+        }}
+      >
         {todo.text}
-      </span>
+      </Typography>
 
-      {/* Footer */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8 }}>
-        <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', color: accentColor }}>
-          {status === 'done' ? '✓ DONE' : status === 'blocked' ? '🔒 BLOCKED' : '● READY'}
-        </span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 1 }}>
+        <Typography sx={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', color: statusColor }}>
+          {statusLabel}
+        </Typography>
+        <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
           {(todo.dependsOn ?? []).length > 0 && (
-            <span style={{ fontSize: 9, color: '#7c3aed', display: 'flex', alignItems: 'center', gap: 2 }}>
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-              </svg>
-              {(todo.dependsOn ?? []).length}
-            </span>
+            <Chip
+              label={(todo.dependsOn ?? []).length}
+              size="small"
+              sx={{ height: 16, fontSize: 9, bgcolor: '#4c1d95', color: '#a78bfa', '& .MuiChip-label': { px: 0.75 } }}
+            />
           )}
           {(todo.commentCount ?? 0) > 0 && (
-            <span style={{ fontSize: 9, color: '#3b82f6', display: 'flex', alignItems: 'center', gap: 2 }}>
-              <svg width="10" height="10" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              {todo.commentCount}
-            </span>
+            <Chip
+              label={todo.commentCount}
+              size="small"
+              sx={{ height: 16, fontSize: 9, bgcolor: '#1e3a8a', color: '#93c5fd', '& .MuiChip-label': { px: 0.75 } }}
+            />
           )}
-        </div>
-      </div>
-
-      <Handle type="source" position={Position.Bottom} style={{ background: '#4b5563', width: 8, height: 8, bottom: -5 }} />
-    </div>
+        </Box>
+      </Box>
+    </Paper>
   )
 }
-
-const nodeTypes = { todo: TodoNode }
 
 interface Props {
   todos: Todo[]
@@ -118,53 +156,72 @@ interface Props {
 }
 
 export default function TodoGraph({ todos, onSelect }: Props) {
-  function isBlocked(todo: Todo): boolean {
-    return (todo.dependsOn ?? []).some(id => !todos.find(t => t.id === id)?.done)
-  }
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerH, setContainerH] = useState(520)
 
-  const { nodes, edges } = useMemo(() => {
-    const rawEdges: Edge[] = todos.flatMap(todo =>
-      (todo.dependsOn ?? []).map(depId => {
-        const depDone = todos.find(t => t.id === depId)?.done ?? false
-        const color = depDone ? '#16a34a' : '#dc2626'
-        return {
-          id: `${depId}-${todo.id}`,
-          source: depId,
-          target: todo.id,
-          animated: !depDone,
-          style: { stroke: color, strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, color, width: 18, height: 18 },
-        }
-      })
-    )
-    const rawNodes: Node[] = todos.map(todo => ({
-      id: todo.id,
-      type: 'todo',
-      position: { x: 0, y: 0 },
-      data: { todo, blocked: isBlocked(todo), onSelect } as NodeData,
-    }))
-    return { nodes: layoutNodes(rawNodes, rawEdges), edges: rawEdges }
-  }, [todos, onSelect])
+  useEffect(() => {
+    function measure() {
+      setContainerH(window.innerHeight - 180)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
+
+  const { nodes, edges, width, height } = useMemo(() => buildLayout(todos), [todos])
 
   return (
-    <div style={{ height: 'calc(100vh - 180px)', minHeight: 520 }}
-      className="rounded-xl border border-gray-800 bg-gray-950 overflow-hidden"
+    <Box
+      ref={containerRef}
+      sx={{
+        height: Math.max(containerH, 520),
+        border: '1px solid #1f2937',
+        borderRadius: 2,
+        bgcolor: '#030712',
+        overflow: 'auto',
+        position: 'relative',
+      }}
     >
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        elementsSelectable={false}
-        proOptions={{ hideAttribution: true }}
-        colorMode="dark"
+      {/* SVG for edges — behind nodes */}
+      <svg
+        style={{ position: 'absolute', top: 0, left: 0, width, height, pointerEvents: 'none', overflow: 'visible' }}
       >
-        <Background color="#1e293b" gap={28} size={1} />
-        <Controls showInteractive={false} />
-      </ReactFlow>
-    </div>
+        <defs>
+          <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#16a34a" />
+          </marker>
+          <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#dc2626" />
+          </marker>
+        </defs>
+
+        {edges.map(e => {
+          const { x1, y1, x2, y2 } = e.points
+          const mid1y = y1 + (y2 - y1) * 0.4
+          const mid2y = y1 + (y2 - y1) * 0.6
+          const d = `M ${x1} ${y1} C ${x1} ${mid1y}, ${x2} ${mid2y}, ${x2} ${y2}`
+          const color = e.done ? '#16a34a' : '#dc2626'
+          return (
+            <path
+              key={`${e.source}-${e.target}`}
+              d={d}
+              stroke={color}
+              strokeWidth={e.done ? 1.5 : 2}
+              fill="none"
+              strokeDasharray={e.done ? undefined : '5,4'}
+              markerEnd={`url(#arrow-${e.done ? 'green' : 'red'})`}
+              opacity={e.done ? 0.6 : 1}
+            />
+          )
+        })}
+      </svg>
+
+      {/* Nodes */}
+      <div style={{ position: 'relative', width, height }}>
+        {nodes.map(node => (
+          <NodeCard key={node.todo.id} node={node} onClick={onSelect} />
+        ))}
+      </div>
+    </Box>
   )
 }
