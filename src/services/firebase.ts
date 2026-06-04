@@ -191,7 +191,12 @@ export async function saveExpenseRowOrder(currency: string, order: string[]) {
 
 export async function fetchTodos() {
   const snap = await getDocs(query(collection(db, 'todos'), orderBy('order')))
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((t: any) => !t.archived)
+}
+
+export async function fetchArchivedTodos() {
+  const snap = await getDocs(query(collection(db, 'todos'), orderBy('order')))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((t: any) => t.archived === true)
 }
 
 export async function saveTodo(todo: Record<string, unknown>) {

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Box, Paper, Grid, Typography, Button, TextField, CircularProgress,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Dialog, DialogTitle, DialogContent, DialogActions, IconButton,
+  Dialog, DialogTitle, DialogContent, DialogActions, IconButton, Checkbox,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
@@ -33,6 +33,7 @@ export default function ZerodhaPage() {
   const [showForm, setShowForm] = useState(false)
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [copyPrev, setCopyPrev] = useState<Partial<Record<keyof EntryForm, boolean>>>({})
 
   const { register, handleSubmit, reset, setValue } = useForm<EntryForm>()
   const isReadOnly = useIsReadOnly()
@@ -63,6 +64,15 @@ export default function ZerodhaPage() {
     setEditCapital(false)
   }
 
+  function handleCopyCheck(key: keyof EntryForm, checked: boolean) {
+    setCopyPrev(prev => ({ ...prev, [key]: checked }))
+    if (checked && latest) {
+      setValue(key, latest[key as keyof ZerodhaEntry] as any)
+    } else {
+      setValue(key, '' as any)
+    }
+  }
+
   async function onSubmit(data: EntryForm) {
     setSaving(true)
     const entry = {
@@ -80,6 +90,7 @@ export default function ZerodhaPage() {
     await upsertZerodhaEntry(entry as unknown as Record<string, unknown>)
     setEntries(await fetchZerodhaEntries() as ZerodhaEntry[])
     reset()
+    setCopyPrev({})
     setShowForm(false)
     setEditingId(null)
     setSaving(false)
@@ -159,13 +170,13 @@ export default function ZerodhaPage() {
       {!isReadOnly && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Button variant="outlined" size="small" startIcon={<AddIcon />}
-            onClick={() => { setShowForm(v => !v); setEditingId(null); reset() }}>
+            onClick={() => { setShowForm(v => !v); setEditingId(null); reset(); setCopyPrev({}) }}>
             {showForm ? 'Cancel' : 'Add Entry'}
           </Button>
         </Box>
       )}
 
-      <Dialog open={showForm} onClose={() => { setShowForm(false); setEditingId(null); reset() }} maxWidth="sm" fullWidth>
+      <Dialog open={showForm} onClose={() => { setShowForm(false); setEditingId(null); reset(); setCopyPrev({}) }} maxWidth="sm" fullWidth>
         <DialogTitle>{editingId ? 'Edit Entry' : 'New Entry'}</DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogContent>
@@ -180,12 +191,25 @@ export default function ZerodhaPage() {
                     fullWidth
                     {...register(key, { required: true })}
                   />
+                  {key !== 'date' && !editingId && latest && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.25 }}>
+                      <Checkbox
+                        size="small"
+                        checked={!!copyPrev[key]}
+                        onChange={e => handleCopyCheck(key, e.target.checked)}
+                        sx={{ p: 0.25 }}
+                      />
+                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
+                        Copy prev: ₹{fmtINR(Number(latest[key as keyof ZerodhaEntry] ?? 0))}
+                      </Typography>
+                    </Box>
+                  )}
                 </Grid>
               ))}
             </Grid>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => { setShowForm(false); setEditingId(null); reset() }} color="inherit">Cancel</Button>
+            <Button onClick={() => { setShowForm(false); setEditingId(null); reset(); setCopyPrev({}) }} color="inherit">Cancel</Button>
             <Button type="submit" variant="contained" disabled={saving}>
               {saving ? <CircularProgress size={16} color="inherit" /> : 'Save'}
             </Button>

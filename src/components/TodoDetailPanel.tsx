@@ -4,10 +4,13 @@ import {
   CircularProgress, Divider, Chip, Checkbox, Tooltip,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
+import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined'
 import type { Todo } from '../types'
 import { useCommentStore } from '../store/commentStore'
 import { useTodoStore } from '../store/todoStore'
 import { useIsReadOnly } from '../store/authStore'
+import { confirm } from './ConfirmDialog'
 
 interface Props {
   todo: Todo
@@ -34,7 +37,7 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
   const [commentText, setCommentText] = useState('')
   const [newBlockerText, setNewBlockerText] = useState('')
   const { comments, loading: commentsLoading, load, add: addComment, remove: removeComment } = useCommentStore()
-  const { add: addTodo } = useTodoStore()
+  const { add: addTodo, update: updateTodo, archive: archiveTodo } = useTodoStore()
   const isReadOnly = useIsReadOnly()
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -42,6 +45,17 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [comments.length])
+
+  async function handleToggleDone() {
+    await updateTodo({ ...todo, done: !todo.done })
+  }
+
+  async function handleArchive() {
+    const ok = await confirm({ title: 'Archive todo', message: `Archive "${todo.text}"? It will be hidden but can be restored.`, confirmLabel: 'Archive', danger: false })
+    if (!ok) return
+    await archiveTodo(todo.id)
+    onClose()
+  }
 
   async function handleAddComment() {
     const text = commentText.trim()
@@ -104,6 +118,31 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
             <CloseIcon fontSize="small" />
           </IconButton>
         </Box>
+
+        {!isReadOnly && (
+          <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+            <Button
+              size="small"
+              variant={todo.done ? 'outlined' : 'contained'}
+              color={todo.done ? 'inherit' : 'success'}
+              startIcon={<CheckCircleOutlinedIcon sx={{ fontSize: 14 }} />}
+              onClick={handleToggleDone}
+              sx={{ fontSize: 11, py: 0.5, textTransform: 'none', flex: 1 }}
+            >
+              {todo.done ? 'Unmark done' : 'Mark as done'}
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="warning"
+              startIcon={<InventoryOutlinedIcon sx={{ fontSize: 14 }} />}
+              onClick={handleArchive}
+              sx={{ fontSize: 11, py: 0.5, textTransform: 'none', flex: 1 }}
+            >
+              Archive
+            </Button>
+          </Box>
+        )}
 
         <Tabs
           value={tab}
