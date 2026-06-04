@@ -102,7 +102,7 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
     onDepsChange(todo, Array.from(current))
   }
 
-  const others = todos.filter(t => t.id !== todo.id)
+  const others = todos.filter(t => t.id !== todo.id).sort((a, b) => Number(a.done) - Number(b.done))
   const blockedByThis = todos.filter(t => (t.dependsOn ?? []).includes(todo.id))
   const isBlocked = (todo.dependsOn ?? []).some(id => !todos.find(t => t.id === id)?.done)
   const statusLabel = todo.done ? '✓ Done' : isBlocked ? '🔒 Blocked' : '● Ready'
