@@ -204,24 +204,31 @@ interface Props {
 
 export default function TodoGraph({ todos, onSelect }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [containerH, setContainerH] = useState(520)
+  const [containerSize, setContainerSize] = useState({ w: 0, h: 520 })
 
   useEffect(() => {
-    function measure() {
-      setContainerH(window.innerHeight - 180)
-    }
-    measure()
-    window.addEventListener('resize', measure)
-    return () => window.removeEventListener('resize', measure)
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      setContainerSize({ w: el.offsetWidth, h: window.innerHeight - 180 })
+    })
+    ro.observe(el)
+    setContainerSize({ w: el.offsetWidth, h: window.innerHeight - 180 })
+    return () => ro.disconnect()
   }, [])
 
   const { nodes, edges, width, height } = useMemo(() => buildLayout(todos), [todos])
+
+  // Scale down to fit container width on small screens; never upscale
+  const scale = containerSize.w > 0 && width > containerSize.w
+    ? containerSize.w / width
+    : 1
 
   return (
     <Box
       ref={containerRef}
       sx={{
-        height: Math.max(containerH, 520),
+        height: Math.max(containerSize.h, 520),
         border: '1px solid #1f2937',
         borderRadius: 2,
         bgcolor: '#030712',
@@ -229,45 +236,55 @@ export default function TodoGraph({ todos, onSelect }: Props) {
         position: 'relative',
       }}
     >
-      {/* SVG for edges — behind nodes */}
-      <svg
-        style={{ position: 'absolute', top: 0, left: 0, width, height, pointerEvents: 'none', overflow: 'visible' }}
-      >
-        <defs>
-          <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#16a34a" />
-          </marker>
-          <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#dc2626" />
-          </marker>
-        </defs>
+      {/*
+        Spacer sized to scaled dimensions so scrollbars reflect real scroll area.
+        The transform wrapper inside is the actual graph content scaled via CSS.
+      */}
+      <div style={{ width: width * scale, height: height * scale, position: 'relative', flexShrink: 0 }}>
+        <div style={{ transform: `scale(${scale})`, transformOrigin: 'top left', position: 'absolute', top: 0, left: 0, width, height }}>
 
-        {edges.map(e => {
-          const { x1, y1, x2, y2 } = e.points
-          const mid1y = y1 + (y2 - y1) * 0.4
-          const mid2y = y1 + (y2 - y1) * 0.6
-          const d = `M ${x1} ${y1} C ${x1} ${mid1y}, ${x2} ${mid2y}, ${x2} ${y2}`
-          const color = e.done ? '#16a34a' : '#dc2626'
-          return (
-            <path
-              key={`${e.source}-${e.target}`}
-              d={d}
-              stroke={color}
-              strokeWidth={e.done ? 1.5 : 2}
-              fill="none"
-              strokeDasharray={e.done ? undefined : '5,4'}
-              markerEnd={`url(#arrow-${e.done ? 'green' : 'red'})`}
-              opacity={e.done ? 0.6 : 1}
-            />
-          )
-        })}
-      </svg>
+          {/* SVG edges — behind nodes */}
+          <svg
+            style={{ position: 'absolute', top: 0, left: 0, width, height, pointerEvents: 'none', overflow: 'visible' }}
+          >
+            <defs>
+              <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#16a34a" />
+              </marker>
+              <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L8,3 z" fill="#dc2626" />
+              </marker>
+            </defs>
 
-      {/* Nodes */}
-      <div style={{ position: 'relative', width, height }}>
-        {nodes.map(node => (
-          <NodeCard key={node.todo.id} node={node} onClick={onSelect} />
-        ))}
+            {edges.map(e => {
+              const { x1, y1, x2, y2 } = e.points
+              const mid1y = y1 + (y2 - y1) * 0.4
+              const mid2y = y1 + (y2 - y1) * 0.6
+              const d = `M ${x1} ${y1} C ${x1} ${mid1y}, ${x2} ${mid2y}, ${x2} ${y2}`
+              const color = e.done ? '#16a34a' : '#dc2626'
+              return (
+                <path
+                  key={`${e.source}-${e.target}`}
+                  d={d}
+                  stroke={color}
+                  strokeWidth={e.done ? 1.5 : 2}
+                  fill="none"
+                  strokeDasharray={e.done ? undefined : '5,4'}
+                  markerEnd={`url(#arrow-${e.done ? 'green' : 'red'})`}
+                  opacity={e.done ? 0.6 : 1}
+                />
+              )
+            })}
+          </svg>
+
+          {/* Nodes */}
+          <div style={{ position: 'relative', width, height }}>
+            {nodes.map(node => (
+              <NodeCard key={node.todo.id} node={node} onClick={onSelect} />
+            ))}
+          </div>
+
+        </div>
       </div>
     </Box>
   )
