@@ -1,14 +1,19 @@
 import { create } from 'zustand'
 import type { Todo } from '../types'
-import { fetchTodos, saveTodo, deleteTodo } from '../services/firebase'
+import { fetchTodos, fetchArchivedTodos, saveTodo, deleteTodo } from '../services/firebase'
 
 interface TodoState {
   todos: Todo[]
+  archivedTodos: Todo[]
   loading: boolean
+  loadingArchived: boolean
   load: () => Promise<void>
+  loadArchived: () => Promise<void>
   add: (text: string) => Promise<Todo>
   update: (todo: Todo) => Promise<void>
   remove: (id: string) => Promise<void>
+  archive: (id: string) => Promise<void>
+  unarchive: (id: string) => Promise<void>
   reorder: (todos: Todo[]) => Promise<void>
   bumpCommentCount: (id: string, delta: 1 | -1) => void
   setCommentCount: (id: string, count: number) => void
@@ -20,12 +25,20 @@ function newId() {
 
 export const useTodoStore = create<TodoState>((set, get) => ({
   todos: [],
+  archivedTodos: [],
   loading: false,
+  loadingArchived: false,
 
   load: async () => {
     set({ loading: true })
     const todos = await fetchTodos() as Todo[]
     set({ todos, loading: false })
+  },
+
+  loadArchived: async () => {
+    set({ loadingArchived: true })
+    const archivedTodos = await fetchArchivedTodos() as Todo[]
+    set({ archivedTodos, loadingArchived: false })
   },
 
   add: async (text: string) => {
@@ -45,6 +58,25 @@ export const useTodoStore = create<TodoState>((set, get) => ({
   remove: async (id: string) => {
     await deleteTodo(id)
     set(state => ({ todos: state.todos.filter(t => t.id !== id) }))
+  },
+
+  archive: async (id: string) => {
+    const todo = get().todos.find(t => t.id === id)
+    if (!todo) return
+    const archived = { ...todo, archived: true }
+    await saveTodo(archived as unknown as Record<string, unknown>)
+    set(state => ({ todos: state.todos.filter(t => t.id !== id) }))
+  },
+
+  unarchive: async (id: string) => {
+    const todo = get().archivedTodos.find(t => t.id === id)
+    if (!todo) return
+    const active = { ...todo, archived: false }
+    await saveTodo(active as unknown as Record<string, unknown>)
+    set(state => ({
+      archivedTodos: state.archivedTodos.filter(t => t.id !== id),
+      todos: [...state.todos, active],
+    }))
   },
 
   reorder: async (todos: Todo[]) => {
