@@ -108,7 +108,7 @@ export default function TodoAiChat({ todos, onExecute }: Props) {
               Todo AI
             </Typography>
             <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, mr: 1 }}>
-              Llama 3.1
+              Llama 3.3 70B
             </Typography>
             <IconButton size="small" onClick={() => setOpen(false)} sx={{ color: 'text.secondary' }}>
               <CloseIcon sx={{ fontSize: 16 }} />

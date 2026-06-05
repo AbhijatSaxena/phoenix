@@ -30,11 +30,13 @@ Available action types:
 - {"type":"archive","id":"<existing id>"}
 
 Rules:
-1. Before creating, check if a very similar todo already exists. If it does, say so and skip.
-2. Dependency direction: "A needs B first" → B must be done before A → todoId=A, dependsOnId=B.
-3. Use tempIds (t1, t2…) only for todos you're creating in this response.
-4. Match existing todos by their text when no IDs are given.
-5. If nothing should change, return an empty actions array with an explanatory message.`
+1. Only take actions the user EXPLICITLY requests. Never mark done, archive, or link unless directly asked.
+2. Before creating, check if a very similar todo already exists. "Similar" means nearly identical purpose — not just sharing a word or theme.
+3. Dependency direction: "A needs B first" → todoId=A, dependsOnId=B.
+4. Use tempIds (t1, t2…) only for todos you're creating in this response.
+5. Match existing todos by their text when no IDs are given.
+6. If nothing should change, return an empty actions array with an explanatory message.
+7. When the user asks a question (e.g. "blocked by what?"), answer using the todo data — do NOT take any actions unless also asked.`
 
 export async function processTodoRequest(
   userMessage: string,
@@ -55,7 +57,7 @@ export async function processTodoRequest(
       'authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'llama-3.1-8b-instant',
+      model: 'llama-3.3-70b-versatile',
       max_tokens: 1024,
       temperature: 0.2,
       messages: [
