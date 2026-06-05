@@ -108,7 +108,7 @@ export default function TodoAiChat({ todos, onExecute }: Props) {
               Todo AI
             </Typography>
             <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, mr: 1 }}>
-              Gemini Flash
+              Gemini 1.5 Flash
             </Typography>
             <IconButton size="small" onClick={() => setOpen(false)} sx={{ color: 'text.secondary' }}>
               <CloseIcon sx={{ fontSize: 16 }} />
