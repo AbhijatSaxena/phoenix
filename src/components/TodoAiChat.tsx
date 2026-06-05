@@ -16,6 +16,7 @@ interface ChatMessage {
   role: 'user' | 'assistant'
   text: string
   done?: string[]  // action summaries
+  rawJson?: string  // full JSON response for history replay
   error?: boolean
 }
 
@@ -57,20 +58,23 @@ export default function TodoAiChat({ todos, onExecute }: Props) {
     setLoading(true)
 
     try {
-      // Build history from existing messages for multi-turn context
+      // Build history using stored raw JSON so model knows what it already created
       const history: ConversationMessage[] = messages.flatMap(m => {
+        if (m.error) return []
         const content = m.role === 'assistant'
-          ? JSON.stringify({ message: m.text, actions: [] })  // assistant turn as JSON
+          ? (m.rawJson ?? JSON.stringify({ message: m.text, actions: [] }))
           : m.text
         return [{ role: m.role, content }]
       })
       const result = await processTodoRequest(msg, todos, history)
       if (result.actions.length > 0) await onExecute(result.actions)
+      const rawJson = JSON.stringify(result)
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         text: result.message,
         done: result.actions.length > 0 ? summariseActions(result.actions) : undefined,
+        rawJson,
       }])
     } catch (err: any) {
       const raw: string = err.message ?? ''
