@@ -7,6 +7,7 @@ import {
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined'
 import UnarchiveOutlinedIcon from '@mui/icons-material/UnarchiveOutlined'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import AddIcon from '@mui/icons-material/Add'
 import { useTodoStore } from '../store/todoStore'
 import type { Todo } from '../types'
@@ -17,7 +18,7 @@ import TodoAiChat from '../components/TodoAiChat'
 import { useIsReadOnly } from '../store/authStore'
 
 export default function TodosPage() {
-  const { todos, archivedTodos, loading, loadingArchived, load, loadArchived, add, update, unarchive, archive } = useTodoStore()
+  const { todos, archivedTodos, loading, loadingArchived, load, loadArchived, add, update, unarchive, archive, remove } = useTodoStore()
   const [selectedTodo, setSelectedTodo] = useState<Todo | null>(null)
   const [showArchived, setShowArchived] = useState(false)
   const [showCompleted, setShowCompleted] = useState(false)
@@ -184,6 +185,11 @@ export default function TodosPage() {
                           <InventoryOutlinedIcon sx={{ fontSize: 16 }} />
                         </IconButton>
                       </Tooltip>
+                      <Tooltip title="Delete permanently">
+                        <IconButton size="small" onClick={() => remove(t.id)} sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}>
+                          <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
                   )
                 }
@@ -219,11 +225,18 @@ export default function TodosPage() {
                 divider
                 secondaryAction={
                   !isReadOnly && (
-                    <Tooltip title="Unarchive">
-                      <IconButton size="small" onClick={() => unarchive(t.id)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
-                        <UnarchiveOutlinedIcon sx={{ fontSize: 16 }} />
-                      </IconButton>
-                    </Tooltip>
+                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                      <Tooltip title="Unarchive">
+                        <IconButton size="small" onClick={() => unarchive(t.id)} sx={{ color: 'text.secondary', '&:hover': { color: 'primary.main' } }}>
+                          <UnarchiveOutlinedIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title="Delete permanently">
+                        <IconButton size="small" onClick={() => remove(t.id)} sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}>
+                          <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
                   )
                 }
               >
