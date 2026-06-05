@@ -6,6 +6,7 @@ import {
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import CloseIcon from '@mui/icons-material/Close'
 import SendIcon from '@mui/icons-material/Send'
+import DeleteSweepIcon from '@mui/icons-material/DeleteSweep'
 import type { Todo } from '../types'
 import type { TodoAction, ConversationMessage } from '../services/ai'
 import { processTodoRequest, summariseActions } from '../services/ai'
@@ -114,9 +115,16 @@ export default function TodoAiChat({ todos, onExecute }: Props) {
             <Typography variant="subtitle2" sx={{ fontSize: 13, fontWeight: 600, flex: 1 }}>
               Todo AI
             </Typography>
-            <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, mr: 1 }}>
+            <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>
               Llama 3.3 70B
             </Typography>
+            {messages.length > 0 && (
+              <Tooltip title="Clear conversation">
+                <IconButton size="small" onClick={() => setMessages([])} sx={{ color: 'text.secondary' }}>
+                  <DeleteSweepIcon sx={{ fontSize: 16 }} />
+                </IconButton>
+              </Tooltip>
+            )}
             <IconButton size="small" onClick={() => setOpen(false)} sx={{ color: 'text.secondary' }}>
               <CloseIcon sx={{ fontSize: 16 }} />
             </IconButton>
