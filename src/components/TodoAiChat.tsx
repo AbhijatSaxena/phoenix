@@ -66,8 +66,8 @@ export default function TodoAiChat({ todos, onExecute }: Props) {
       }])
     } catch (err: any) {
       const raw: string = err.message ?? ''
-      const text = raw.includes('VITE_GOOGLE_AI_KEY')
-        ? 'API key not set up yet. Ask the repo owner to add VITE_GOOGLE_AI_KEY as a GitHub Actions secret, then redeploy.'
+      const text = raw.includes('VITE_GROQ_API_KEY')
+        ? 'API key not set up yet. Ask the repo owner to add VITE_GROQ_API_KEY as a GitHub Actions secret, then redeploy.'
         : raw || 'Something went wrong.'
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
@@ -108,7 +108,7 @@ export default function TodoAiChat({ todos, onExecute }: Props) {
               Todo AI
             </Typography>
             <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10, mr: 1 }}>
-              Gemini 1.5 Flash
+              Llama 3.1
             </Typography>
             <IconButton size="small" onClick={() => setOpen(false)} sx={{ color: 'text.secondary' }}>
               <CloseIcon sx={{ fontSize: 16 }} />
