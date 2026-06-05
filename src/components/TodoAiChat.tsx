@@ -7,7 +7,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'
 import CloseIcon from '@mui/icons-material/Close'
 import SendIcon from '@mui/icons-material/Send'
 import type { Todo } from '../types'
-import type { TodoAction } from '../services/ai'
+import type { TodoAction, ConversationMessage } from '../services/ai'
 import { processTodoRequest, summariseActions } from '../services/ai'
 
 interface ChatMessage {
@@ -56,7 +56,14 @@ export default function TodoAiChat({ todos, onExecute }: Props) {
     setLoading(true)
 
     try {
-      const result = await processTodoRequest(msg, todos)
+      // Build history from existing messages for multi-turn context
+      const history: ConversationMessage[] = messages.flatMap(m => {
+        const content = m.role === 'assistant'
+          ? JSON.stringify({ message: m.text, actions: [] })  // assistant turn as JSON
+          : m.text
+        return [{ role: m.role, content }]
+      })
+      const result = await processTodoRequest(msg, todos, history)
       if (result.actions.length > 0) await onExecute(result.actions)
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
