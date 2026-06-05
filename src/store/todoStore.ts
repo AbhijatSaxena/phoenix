@@ -57,7 +57,10 @@ export const useTodoStore = create<TodoState>((set, get) => ({
 
   remove: async (id: string) => {
     await deleteTodo(id)
-    set(state => ({ todos: state.todos.filter(t => t.id !== id) }))
+    set(state => ({
+      todos: state.todos.filter(t => t.id !== id),
+      archivedTodos: state.archivedTodos.filter(t => t.id !== id),
+    }))
   },
 
   archive: async (id: string) => {
