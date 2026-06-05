@@ -10,8 +10,10 @@ import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import AddIcon from '@mui/icons-material/Add'
 import { useTodoStore } from '../store/todoStore'
 import type { Todo } from '../types'
+import type { TodoAction } from '../services/ai'
 import TodoGraph from '../components/TodoGraph'
 import TodoDetailPanel from '../components/TodoDetailPanel'
+import TodoAiChat from '../components/TodoAiChat'
 import { useIsReadOnly } from '../store/authStore'
 
 export default function TodosPage() {
@@ -30,6 +32,39 @@ export default function TodosPage() {
     await add(text)
     setNewText('')
     setAdding(false)
+  }
+
+  async function executeAiActions(actions: TodoAction[]) {
+    // Track newly created todos by tempId so link_dep can reference them
+    const tempMap: Record<string, Todo> = {}
+
+    for (const action of actions) {
+      if (action.type === 'create_todo' && action.text) {
+        const todo = await add(action.text)
+        if (action.tempId) tempMap[action.tempId] = todo
+
+      } else if (action.type === 'link_dep' && action.todoId && action.dependsOnId) {
+        const resolvedTodoId = tempMap[action.todoId]?.id ?? action.todoId
+        const resolvedDepId  = tempMap[action.dependsOnId]?.id ?? action.dependsOnId
+        const todo = tempMap[action.todoId] ?? todos.find(t => t.id === resolvedTodoId)
+        if (todo) {
+          const updated = { ...todo, dependsOn: [...new Set([...(todo.dependsOn ?? []), resolvedDepId])] }
+          await update(updated)
+          if (action.todoId in tempMap) tempMap[action.todoId] = updated
+        }
+
+      } else if (action.type === 'mark_done' && action.id) {
+        const todo = todos.find(t => t.id === action.id)
+        if (todo) await update({ ...todo, done: true })
+
+      } else if (action.type === 'mark_undone' && action.id) {
+        const todo = todos.find(t => t.id === action.id)
+        if (todo) await update({ ...todo, done: false })
+
+      } else if (action.type === 'archive' && action.id) {
+        await archive(action.id)
+      }
+    }
   }
 
   useEffect(() => { load() }, [])
@@ -206,6 +241,8 @@ export default function TodosPage() {
           </List>
         </DialogContent>
       </Dialog>
+
+      <TodoAiChat todos={todos} onExecute={executeAiActions} />
     </Box>
   )
 }
