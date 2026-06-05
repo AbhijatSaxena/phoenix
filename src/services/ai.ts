@@ -14,7 +14,12 @@ export interface AiTodoResponse {
   actions: TodoAction[]
 }
 
-const SYSTEM_PROMPT = (todoContext: string) => `You are a todo manager assistant. Given the user's request and the current todo list, decide what actions to take and return a JSON response.
+export interface ConversationMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+const SYSTEM_PROMPT = (todoContext: string) => `You are a todo manager assistant that helps users capture well-structured todos with proper dependencies.
 
 Current todos:
 ${todoContext}
@@ -29,18 +34,27 @@ Available action types:
 - {"type":"mark_undone","id":"<existing id>"}
 - {"type":"archive","id":"<existing id>"}
 
-Rules:
+## Core rules
 1. Only take actions the user EXPLICITLY requests. Never mark done, archive, or link unless directly asked.
 2. Before creating, check if a very similar todo already exists. "Similar" means nearly identical purpose — not just sharing a word or theme.
 3. Dependency direction: "A needs B first" → todoId=A, dependsOnId=B.
 4. Use tempIds (t1, t2…) only for todos you're creating in this response.
 5. Match existing todos by their text when no IDs are given.
-6. If nothing should change, return an empty actions array with an explanatory message.
-7. When the user asks a question (e.g. "blocked by what?"), answer using the todo data — do NOT take any actions unless also asked.`
+6. When the user asks a question, answer using the todo data — do NOT take actions unless also asked.
+
+## Blocker interview (most important behaviour)
+When the user asks to create a NEW todo and no blockers/dependencies are mentioned:
+- Do NOT create the todo yet.
+- Instead, ask: "What's blocking you from achieving '[todo text]'?" — return this as the message with an empty actions array.
+- When the user replies with a blocker, acknowledge it and ask: "Is there anything blocking '[blocker]'?" — keep drilling.
+- Continue until the user says something like "nothing", "that's it", "done", "no more", or gives a clear closure signal.
+- Once you have the full picture, create ALL the todos (original + every blocker uncovered) and link them as a proper dependency chain in a single response. Confirm with a summary message.
+- If the user's original message already mentions dependencies or blockers explicitly, skip the interview and act immediately.`
 
 export async function processTodoRequest(
   userMessage: string,
   todos: Todo[],
+  history: ConversationMessage[] = [],
 ): Promise<AiTodoResponse> {
   const apiKey = import.meta.env.VITE_GROQ_API_KEY
   if (!apiKey) throw new Error('VITE_GROQ_API_KEY is not configured.')
@@ -62,6 +76,7 @@ export async function processTodoRequest(
       temperature: 0.2,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT(todoContext) },
+        ...history,
         { role: 'user', content: userMessage },
       ],
     }),
