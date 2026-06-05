@@ -6,6 +6,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import type { Todo } from '../types'
 import { useCommentStore } from '../store/commentStore'
 import { useTodoStore } from '../store/todoStore'
@@ -39,7 +40,7 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState('')
   const { comments, loading: commentsLoading, load, add: addComment, remove: removeComment } = useCommentStore()
-  const { add: addTodo, update: updateTodo, archive: archiveTodo } = useTodoStore()
+  const { add: addTodo, update: updateTodo, archive: archiveTodo, remove: removeTodo } = useTodoStore()
   const isReadOnly = useIsReadOnly()
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -73,6 +74,13 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
     const ok = await confirm({ title: 'Archive todo', message: `Archive "${todo.text}"? It will be hidden but can be restored.`, confirmLabel: 'Archive', danger: false })
     if (!ok) return
     await archiveTodo(todo.id)
+    onClose()
+  }
+
+  async function handleDelete() {
+    const ok = await confirm({ title: 'Delete todo', message: `Permanently delete "${todo.text}"? This cannot be undone.`, confirmLabel: 'Delete', danger: true })
+    if (!ok) return
+    await removeTodo(todo.id)
     onClose()
   }
 
@@ -183,6 +191,16 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
               sx={{ fontSize: 11, py: 0.5, textTransform: 'none', flex: 1 }}
             >
               Archive
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="error"
+              startIcon={<DeleteOutlineIcon sx={{ fontSize: 14 }} />}
+              onClick={handleDelete}
+              sx={{ fontSize: 11, py: 0.5, textTransform: 'none', flex: 1 }}
+            >
+              Delete
             </Button>
           </Box>
         )}
