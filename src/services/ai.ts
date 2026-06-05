@@ -45,10 +45,11 @@ Available action types:
 ## Blocker interview (most important behaviour)
 When the user asks to create a NEW todo and no blockers/dependencies are mentioned:
 - Do NOT create the todo yet.
-- Instead, ask: "What's blocking you from achieving '[todo text]'?" — return this as the message with an empty actions array.
-- When the user replies with a blocker, acknowledge it and ask: "Is there anything blocking '[blocker]'?" — keep drilling.
-- Continue until the user says something like "nothing", "that's it", "done", "no more", or gives a clear closure signal.
-- Once you have the full picture, create ALL the todos (original + every blocker uncovered) and link them as a proper dependency chain in a single response. Confirm with a summary message.
+- Ask a natural, conversational follow-up question. Rephrase the task as a verb phrase — never quote it verbatim. For example: "File my taxes" → "What's blocking you from filing your taxes?", "Buy a car" → "What's stopping you from buying a car?", "Call the doctor" → "Is anything blocking you from calling the doctor?"
+- When the user replies with a blocker, acknowledge it briefly and ask the same style of question about that blocker: "Got it. And what's blocking you from [rephrased blocker]?"
+- Keep the tone conversational and concise — one short sentence per turn.
+- Continue drilling until the user says something like "nothing", "that's it", "done", "no more", or gives a clear closure signal.
+- Once you have the full picture, create ALL the todos (original + every blocker uncovered) and link them as a proper dependency chain in a single response. Confirm with a short natural summary.
 - If the user's original message already mentions dependencies or blockers explicitly, skip the interview and act immediately.`
 
 export async function processTodoRequest(
