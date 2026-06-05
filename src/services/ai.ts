@@ -40,29 +40,26 @@ export async function processTodoRequest(
   userMessage: string,
   todos: Todo[],
 ): Promise<AiTodoResponse> {
-  const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error('VITE_ANTHROPIC_API_KEY is not configured.')
+  const apiKey = import.meta.env.VITE_GOOGLE_AI_KEY
+  if (!apiKey) throw new Error('VITE_GOOGLE_AI_KEY is not configured.')
 
   const todoContext = JSON.stringify(
     todos.map(t => ({ id: t.id, text: t.text, done: t.done, dependsOn: t.dependsOn ?? [] })),
     null, 2,
   )
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-iab': 'true',
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: SYSTEM_PROMPT(todoContext) }] },
+        contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+        generationConfig: { maxOutputTokens: 1024, temperature: 0.2 },
+      }),
     },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT(todoContext),
-      messages: [{ role: 'user', content: userMessage }],
-    }),
-  })
+  )
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
@@ -70,12 +67,12 @@ export async function processTodoRequest(
   }
 
   const data = await res.json()
-  const text: string = data.content?.[0]?.text ?? ''
+  const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
 
   try {
     return JSON.parse(text) as AiTodoResponse
   } catch {
-    throw new Error(`Claude returned malformed JSON: ${text}`)
+    throw new Error(`AI returned malformed JSON: ${text}`)
   }
 }
 
