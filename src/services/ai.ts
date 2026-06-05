@@ -36,9 +36,9 @@ Available action types:
 
 ## Core rules
 1. Only take actions the user EXPLICITLY requests. Never mark done, archive, or link unless directly asked.
-2. Before creating, check if a very similar todo already exists. "Similar" means nearly identical purpose — not just sharing a word or theme.
+2. CRITICAL — no duplicates: Before creating any todo, scan the current todos list AND the conversation history for todos already created this session. If a todo with nearly identical purpose already exists, use its existing id — never recreate it.
 3. Dependency direction: "A needs B first" → todoId=A, dependsOnId=B.
-4. Use tempIds (t1, t2…) only for todos you're creating in this response.
+4. Use tempIds (t1, t2…) only for todos you are creating for the first time in THIS response.
 5. Match existing todos by their text when no IDs are given.
 6. When the user asks a question, answer using the todo data — do NOT take actions unless also asked.
 
