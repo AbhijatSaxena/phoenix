@@ -65,10 +65,14 @@ export default function TodoAiChat({ todos, onExecute }: Props) {
         done: result.actions.length > 0 ? summariseActions(result.actions) : undefined,
       }])
     } catch (err: any) {
+      const raw: string = err.message ?? ''
+      const text = raw.includes('VITE_ANTHROPIC_API_KEY')
+        ? 'API key not set up yet. Ask the repo owner to add VITE_ANTHROPIC_API_KEY as a GitHub Actions secret, then redeploy.'
+        : raw || 'Something went wrong.'
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        text: err.message ?? 'Something went wrong. Is VITE_ANTHROPIC_API_KEY set?',
+        text,
         error: true,
       }])
     } finally {
