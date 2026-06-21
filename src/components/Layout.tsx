@@ -8,12 +8,13 @@ import { useRatesStore } from '../store/ratesStore'
 import { useAuthStore } from '../store/authStore'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: '◈' },
-  { to: '/snapshots', label: 'Snapshots',  icon: '📈' },
-  { to: '/expenses',  label: 'Expenses',   icon: '💸' },
-  { to: '/regent',    label: 'Regent',     icon: '🏠' },
-  { to: '/zerodha',   label: 'Zerodha',    icon: '📊' },
-  { to: '/todos',     label: 'Todos',      icon: '✅' },
+  { to: '/dashboard', label: 'Dashboard', icon: '◈',  adminOnly: false },
+  { to: '/snapshots', label: 'Snapshots',  icon: '📈', adminOnly: false },
+  { to: '/expenses',  label: 'Expenses',   icon: '💸', adminOnly: false },
+  { to: '/regent',    label: 'Regent',     icon: '🏠', adminOnly: false },
+  { to: '/zerodha',   label: 'Zerodha',    icon: '📊', adminOnly: false },
+  { to: '/todos',     label: 'Todos',      icon: '✅', adminOnly: false },
+  { to: '/admin',     label: 'Admin',      icon: '🔐', adminOnly: true  },
 ]
 
 const SIDEBAR_W = 200
@@ -58,7 +59,7 @@ export default function Layout() {
 
         {/* Nav links */}
         <List sx={{ flex: 1, px: 1, py: 1.5 }} disablePadding>
-          {navItems.map(({ to, label, icon }) => (
+          {navItems.filter(n => !n.adminOnly || role === 'admin').map(({ to, label, icon }) => (
             <NavLink key={to} to={to} style={{ textDecoration: 'none' }}>
               {({ isActive }) => (
                 <ListItem disablePadding sx={{ mb: 0.25 }}>
@@ -162,7 +163,7 @@ export default function Layout() {
         elevation={0}
       >
         <BottomNavigation sx={{ bgcolor: 'transparent', height: 56 }}>
-          {navItems.map(({ to, label, icon }) => (
+          {navItems.filter(n => !n.adminOnly).map(({ to, label, icon }) => (
             <NavLink key={to} to={to} style={{ textDecoration: 'none', flex: 1 }}>
               {({ isActive }) => (
                 <BottomNavigationAction
