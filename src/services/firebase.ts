@@ -12,6 +12,7 @@ import {
   increment,
   query,
   orderBy,
+  onSnapshot,
   enableIndexedDbPersistence,
   Timestamp,
 } from 'firebase/firestore'
@@ -227,6 +228,51 @@ export async function bumpCommentCount(todoId: string, delta: 1 | -1) {
 
 export async function setCommentCount(todoId: string, count: number) {
   await updateDoc(doc(db, 'todos', todoId), { commentCount: count })
+}
+
+// ─── Sessions ────────────────────────────────────────────────────────────────
+
+export interface Session {
+  id: string
+  userId: string
+  email: string
+  userAgent: string
+  signedInAt: Timestamp
+  lastSeen: Timestamp
+  revoked: boolean
+}
+
+export async function createSession(userId: string, email: string, userAgent: string): Promise<string> {
+  const ref = await addDoc(collection(db, 'sessions'), {
+    userId, email, userAgent,
+    signedInAt: Timestamp.now(),
+    lastSeen: Timestamp.now(),
+    revoked: false,
+  })
+  return ref.id
+}
+
+export async function updateSessionLastSeen(sessionId: string) {
+  await updateDoc(doc(db, 'sessions', sessionId), { lastSeen: Timestamp.now() })
+}
+
+export async function deleteSession(sessionId: string) {
+  await deleteDoc(doc(db, 'sessions', sessionId))
+}
+
+export async function fetchAllSessions(): Promise<Session[]> {
+  const snap = await getDocs(query(collection(db, 'sessions'), orderBy('signedInAt', 'desc')))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() } as Session))
+}
+
+export async function revokeSession(sessionId: string) {
+  await updateDoc(doc(db, 'sessions', sessionId), { revoked: true })
+}
+
+export function watchSession(sessionId: string, onRevoked: () => void): () => void {
+  return onSnapshot(doc(db, 'sessions', sessionId), snap => {
+    if (snap.exists() && snap.data().revoked === true) onRevoked()
+  })
 }
 
 export { Timestamp }
