@@ -4,6 +4,7 @@ import { router } from './router'
 import { useRatesStore } from './store/ratesStore'
 import { useAuthStore } from './store/authStore'
 import { ConfirmProvider } from './components/ConfirmDialog'
+import { useInactivityLogout } from './hooks/useInactivityLogout'
 
 export default function App() {
   const loadRates = useRatesStore(s => s.loadRates)
@@ -12,6 +13,8 @@ export default function App() {
   useEffect(() => {
     if (user) loadRates()
   }, [user])
+
+  useInactivityLogout()
 
   return (
     <>
