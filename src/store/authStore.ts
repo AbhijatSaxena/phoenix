@@ -25,17 +25,29 @@ let _sessionId: string | null = null
 let _stopWatchSession: (() => void) | null = null
 let _lastSeenInterval: ReturnType<typeof setInterval> | null = null
 
+const SESSION_KEY = 'phoenix_session_id'
+
 function cleanup() {
   if (_stopWatchSession) { _stopWatchSession(); _stopWatchSession = null }
   if (_lastSeenInterval) { clearInterval(_lastSeenInterval); _lastSeenInterval = null }
   if (_sessionId) { deleteSession(_sessionId).catch(() => {}); _sessionId = null }
+  sessionStorage.removeItem(SESSION_KEY)
 }
 
 export const useAuthStore = create<AuthState>((set) => {
   onAuthStateChanged(auth, async (user) => {
     if (user) {
       const role = await fetchUserRole(user.uid)
-      const sessionId = await createSession(user.uid, user.email ?? '', navigator.userAgent)
+
+      // Reuse existing session on refresh instead of creating a new one
+      let sessionId = sessionStorage.getItem(SESSION_KEY)
+      if (sessionId) {
+        await updateSessionLastSeen(sessionId).catch(() => { sessionId = null })
+      }
+      if (!sessionId) {
+        sessionId = await createSession(user.uid, user.email ?? '', navigator.userAgent)
+        sessionStorage.setItem(SESSION_KEY, sessionId)
+      }
       _sessionId = sessionId
 
       _stopWatchSession = watchSession(sessionId, () => {
