@@ -65,7 +65,10 @@ function buildLayout(todos: Todo[]): { nodes: LayoutNode[]; edges: Edge[]; width
   dagre.layout(g)
 
   const isBlocked = (t: Todo) =>
-    (t.dependsOn ?? []).some(id => !todos.find(x => x.id === id)?.done)
+    (t.dependsOn ?? []).some(id => {
+      const dep = todos.find(x => x.id === id)
+      return dep !== undefined && !dep.done
+    })
 
   const dagreNodes: LayoutNode[] = dagreTodos.map(t => {
     const pos = g.node(t.id)
