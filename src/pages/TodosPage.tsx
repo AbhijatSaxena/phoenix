@@ -28,6 +28,14 @@ export default function TodosPage() {
   const isReadOnly = useIsReadOnly()
   const { focusedId, paused, elapsed, focus, pause, resume, unfocus } = useTodoFocus()
 
+  async function handleStop() {
+    if (focusedId && elapsed > 0) {
+      const todo = todos.find(t => t.id === focusedId)
+      if (todo) await update({ ...todo, focusMs: (todo.focusMs ?? 0) + elapsed * 1000 })
+    }
+    unfocus()
+  }
+
   async function handleAddTodo() {
     const text = newText.trim()
     if (!text) return
@@ -110,7 +118,7 @@ export default function TodosPage() {
           onFocus={focus}
           onPause={pause}
           onResume={resume}
-          onUnfocus={unfocus}
+          onUnfocus={handleStop}
         />
       )}
 

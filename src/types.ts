@@ -87,6 +87,7 @@ export interface Todo {
   archived?: boolean
   commentCount?: number
   dependsOn?: string[]  // IDs of todos that must be completed first
+  focusMs?: number      // total milliseconds spent in focus across all sessions
 }
 
 export interface TodoComment {
