@@ -70,11 +70,8 @@ export default function TodosPage() {
 
   useEffect(() => { load() }, [])
 
-  // Todos still needed as deps by active todos stay in the graph even if done
-  const activeTodos = todos.filter(t => !t.done)
-  const activeDepsSet = new Set(activeTodos.flatMap(t => t.dependsOn ?? []))
-  const completedHidden = todos.filter(t => t.done && !activeDepsSet.has(t.id))
-  const graphTodos = todos.filter(t => !t.done || activeDepsSet.has(t.id))
+  const completedHidden = todos.filter(t => t.done)
+  const graphTodos = todos.filter(t => !t.done)
 
   async function handleDepsChange(todo: Todo, deps: string[]) {
     const updated = { ...todo, dependsOn: deps }
