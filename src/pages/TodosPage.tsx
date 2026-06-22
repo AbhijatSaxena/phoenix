@@ -16,6 +16,7 @@ import TodoGraph from '../components/TodoGraph'
 import TodoDetailPanel from '../components/TodoDetailPanel'
 import TodoAiChat from '../components/TodoAiChat'
 import { useIsReadOnly } from '../store/authStore'
+import { useTodoFocus } from '../hooks/useTodoFocus'
 
 export default function TodosPage() {
   const { todos, archivedTodos, loading, loadingArchived, load, loadArchived, add, update, unarchive, archive, remove } = useTodoStore()
@@ -25,6 +26,7 @@ export default function TodosPage() {
   const [newText, setNewText] = useState('')
   const [adding, setAdding] = useState(false)
   const isReadOnly = useIsReadOnly()
+  const { focusedId, elapsed, focus, unfocus } = useTodoFocus()
 
   async function handleAddTodo() {
     const text = newText.trim()
@@ -102,6 +104,10 @@ export default function TodosPage() {
           todos={todos}
           onClose={() => setSelectedTodo(null)}
           onDepsChange={handleDepsChange}
+          focusedId={focusedId}
+          elapsed={elapsed}
+          onFocus={focus}
+          onUnfocus={unfocus}
         />
       )}
 
@@ -153,7 +159,7 @@ export default function TodosPage() {
         </Button>
       </Box>
 
-      <TodoGraph todos={graphTodos} onSelect={handleSelect} />
+      <TodoGraph todos={graphTodos} onSelect={handleSelect} focusedId={focusedId} elapsed={elapsed} />
 
       {/* Completed todos dialog */}
       <Dialog open={showCompleted} onClose={() => setShowCompleted(false)} maxWidth="sm" fullWidth>

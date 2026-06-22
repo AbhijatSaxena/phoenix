@@ -8,8 +8,11 @@ import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import AdjustOutlinedIcon from '@mui/icons-material/AdjustOutlined'
+import PauseCircleOutlinedIcon from '@mui/icons-material/PauseCircleOutlined'
 import type { Todo } from '../types'
 import { getPendingBlockers, isTodoBlocked } from '../utils/todoUtils'
+import { fmtElapsed } from '../hooks/useTodoFocus'
 import { useCommentStore } from '../store/commentStore'
 import { useTodoStore } from '../store/todoStore'
 import { useIsReadOnly } from '../store/authStore'
@@ -20,6 +23,10 @@ interface Props {
   todos: Todo[]
   onClose: () => void
   onDepsChange: (todo: Todo, deps: string[]) => void
+  focusedId: string | null
+  elapsed: number
+  onFocus: (id: string) => void
+  onUnfocus: () => void
 }
 
 type TabId = 0 | 1
@@ -35,7 +42,7 @@ function wouldCreateCycle(todos: Todo[], targetId: string, newDepId: string): bo
   return reaches(newDepId)
 }
 
-export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: Props) {
+export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, focusedId, elapsed, onFocus, onUnfocus }: Props) {
   const [tab, setTab] = useState<TabId>(0)
   const [commentText, setCommentText] = useState('')
   const [newBlockerText, setNewBlockerText] = useState('')
@@ -127,8 +134,10 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
   )
   const blocked = isTodoBlocked(todo, todos)
   const pendingBlockersCount = getPendingBlockers(todo, todos).length
-  const statusLabel = todo.done ? '✓ Done' : blocked ? '🔒 Blocked' : '● Ready'
-  const statusColor = todo.done ? 'text.disabled' : blocked ? 'error.main' : 'primary.main'
+  const isFocused = focusedId === todo.id
+  const canFocus = !todo.done && !blocked
+  const statusLabel = todo.done ? '✓ Done' : isFocused ? `⏱ ${fmtElapsed(elapsed)}` : blocked ? '🔒 Blocked' : '● Ready'
+  const statusColor = todo.done ? 'text.disabled' : isFocused ? '#d97706' : blocked ? 'error.main' : 'primary.main'
 
   return (
     <Drawer
@@ -217,6 +226,32 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
               Delete
             </Button>
           </Box>
+        )}
+
+        {canFocus && (
+          <Button
+            fullWidth
+            size="small"
+            variant={isFocused ? 'contained' : 'outlined'}
+            startIcon={isFocused ? <PauseCircleOutlinedIcon sx={{ fontSize: 14 }} /> : <AdjustOutlinedIcon sx={{ fontSize: 14 }} />}
+            onClick={isFocused ? onUnfocus : () => onFocus(todo.id)}
+            sx={{
+              mb: 1.5,
+              fontSize: 11,
+              py: 0.75,
+              textTransform: 'none',
+              borderColor: isFocused ? 'transparent' : '#92400e',
+              bgcolor: isFocused ? '#d97706' : 'transparent',
+              color: isFocused ? '#1a1000' : '#d97706',
+              fontWeight: 600,
+              '&:hover': {
+                bgcolor: isFocused ? '#b45309' : 'rgba(217,119,6,0.08)',
+                borderColor: '#92400e',
+              },
+            }}
+          >
+            {isFocused ? `Stop focus  ·  ${fmtElapsed(elapsed)}` : 'Focus on this'}
+          </Button>
         )}
 
         <Tabs
