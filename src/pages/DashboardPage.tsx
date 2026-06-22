@@ -13,6 +13,7 @@ import type { Account, Category } from '../types'
 import { fmtINR, fmtCurrency } from '../lib/fmt'
 import { useForm } from 'react-hook-form'
 import { useIsReadOnly } from '../store/authStore'
+import { useLinksStore } from '../store/linksStore'
 
 function timeAgo(ms: number): string {
   const diff = Date.now() - ms
@@ -47,8 +48,9 @@ export default function DashboardPage() {
 
   const { register, handleSubmit, reset } = useForm<EditForm>()
   const isReadOnly = useIsReadOnly()
+  const { links, load: loadLinks } = useLinksStore()
 
-  useEffect(() => { load() }, [])
+  useEffect(() => { load(); loadLinks() }, [])
 
   const usdInr = rates?.usdInr ?? 84
   const cadInr = rates?.cadInr ?? 62
@@ -98,6 +100,40 @@ export default function DashboardPage() {
 
   return (
     <Box>
+      {/* Quick Links */}
+      {links.length > 0 && (
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+          {links.map(link => (
+            <Box
+              key={link.id}
+              component="a"
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 0.75,
+                px: 1.5,
+                py: 0.75,
+                borderRadius: '8px',
+                border: '1px solid #1f2937',
+                bgcolor: '#0f172a',
+                color: 'text.secondary',
+                textDecoration: 'none',
+                fontSize: 12,
+                fontWeight: 500,
+                transition: 'border-color 0.15s, color 0.15s, background 0.15s',
+                '&:hover': { borderColor: '#2563eb', color: 'text.primary', bgcolor: '#111827' },
+              }}
+            >
+              <span style={{ fontSize: 15, lineHeight: 1 }}>{link.emoji}</span>
+              {link.title}
+            </Box>
+          ))}
+        </Box>
+      )}
+
       {/* Summary */}
       <Grid container spacing={1.5} sx={{ mb: 3 }}>
         {summaryCards.map(({ label, value, color, large }) => (

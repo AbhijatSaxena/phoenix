@@ -1,13 +1,21 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
   Box, Typography, Table, TableBody, TableCell, TableHead, TableRow,
-  IconButton, Tooltip, Chip, CircularProgress, Paper,
+  IconButton, Tooltip, Chip, CircularProgress, Paper, Divider,
+  TextField, Button,
 } from '@mui/material'
 import LogoutIcon from '@mui/icons-material/Logout'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
+import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
+import AddIcon from '@mui/icons-material/Add'
+import CheckIcon from '@mui/icons-material/Check'
+import CloseIcon from '@mui/icons-material/Close'
 import { fetchAllSessions, revokeSession } from '../services/firebase'
 import type { Session } from '../services/firebase'
 import { useAuthStore } from '../store/authStore'
+import { useLinksStore } from '../store/linksStore'
+import type { QuickLink } from '../types'
 
 function parseUA(ua: string): string {
   if (/iPhone|iPad/.test(ua)) return '📱 iOS'
@@ -28,18 +36,25 @@ function isActive(ts: { seconds: number } | null): boolean {
   return Date.now() - ts.seconds * 1000 < 10 * 60 * 1000
 }
 
+const EMPTY_FORM = { title: '', url: '', emoji: '🔗' }
+
 export default function AdminPage() {
   const [sessions, setSessions] = useState<Session[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading]   = useState(true)
   const [revoking, setRevoking] = useState<string | null>(null)
   const currentSessionId = useAuthStore(s => s.sessionId)
 
-  const load = useCallback(async () => {
+  const { links, load: loadLinks, add: addLink, update: updateLink, remove: removeLink } = useLinksStore()
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [editingLink, setEditingLink] = useState<QuickLink | null>(null)
+  const [savingLink, setSavingLink] = useState(false)
+
+  const loadSessions = useCallback(async () => {
     setLoading(true)
     try { setSessions(await fetchAllSessions()) } finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => { loadSessions(); loadLinks() }, [loadSessions])
 
   async function handleRevoke(session: Session) {
     if (session.id === currentSessionId) return
@@ -52,15 +67,44 @@ export default function AdminPage() {
     }
   }
 
+  async function handleSaveLink() {
+    const title = form.title.trim()
+    const url   = form.url.trim()
+    if (!title || !url) return
+    setSavingLink(true)
+    try {
+      if (editingLink) {
+        await updateLink({ ...editingLink, title, url, emoji: form.emoji })
+      } else {
+        await addLink(title, url, form.emoji)
+      }
+      setForm(EMPTY_FORM)
+      setEditingLink(null)
+    } finally {
+      setSavingLink(false)
+    }
+  }
+
+  function startEdit(link: QuickLink) {
+    setEditingLink(link)
+    setForm({ title: link.title, url: link.url, emoji: link.emoji })
+  }
+
+  function cancelEdit() {
+    setEditingLink(null)
+    setForm(EMPTY_FORM)
+  }
+
   return (
     <Box>
+      {/* Sessions header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>Administration</Typography>
           <Typography variant="caption" color="text.secondary">Active sessions across all devices</Typography>
         </Box>
         <Tooltip title="Refresh">
-          <IconButton onClick={load} size="small" disabled={loading}>
+          <IconButton onClick={loadSessions} size="small" disabled={loading}>
             {loading ? <CircularProgress size={16} /> : <RefreshIcon sx={{ fontSize: 18 }} />}
           </IconButton>
         </Tooltip>
@@ -143,9 +187,96 @@ export default function AdminPage() {
         </Table>
       </Paper>
 
-      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1.5, fontSize: 10 }}>
+      <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1.5, mb: 4, fontSize: 10 }}>
         Sessions are marked Active if last heartbeat was within 10 minutes. Heartbeat updates every 5 minutes while the app is open.
       </Typography>
+
+      {/* Quick Links manager */}
+      <Divider sx={{ mb: 3 }} />
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16, mb: 0.5 }}>Quick Links</Typography>
+        <Typography variant="caption" color="text.secondary">Links shown as a shortcut bar on the dashboard.</Typography>
+      </Box>
+
+      {/* Add / Edit form */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 2.5, alignItems: 'flex-start' }}>
+        <TextField
+          size="small"
+          placeholder="Emoji"
+          value={form.emoji}
+          onChange={e => setForm(f => ({ ...f, emoji: e.target.value }))}
+          sx={{ width: 72 }}
+          slotProps={{ htmlInput: { style: { textAlign: 'center', fontSize: 18 } } }}
+        />
+        <TextField
+          size="small"
+          placeholder="Title"
+          value={form.title}
+          onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+          sx={{ flex: 1 }}
+        />
+        <TextField
+          size="small"
+          placeholder="https://…"
+          value={form.url}
+          onChange={e => setForm(f => ({ ...f, url: e.target.value }))}
+          sx={{ flex: 2 }}
+          onKeyDown={e => e.key === 'Enter' && handleSaveLink()}
+        />
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleSaveLink}
+          disabled={savingLink || !form.title.trim() || !form.url.trim()}
+          startIcon={editingLink ? <CheckIcon sx={{ fontSize: 14 }} /> : <AddIcon sx={{ fontSize: 14 }} />}
+          sx={{ whiteSpace: 'nowrap', minWidth: 0 }}
+        >
+          {editingLink ? 'Save' : 'Add'}
+        </Button>
+        {editingLink && (
+          <IconButton size="small" onClick={cancelEdit} sx={{ color: 'text.secondary' }}>
+            <CloseIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        )}
+      </Box>
+
+      {/* Links list */}
+      {links.length === 0 ? (
+        <Typography variant="body2" color="text.disabled" sx={{ py: 2, textAlign: 'center' }}>No links yet.</Typography>
+      ) : (
+        <Paper variant="outlined" sx={{ border: '1px solid #1f2937', borderRadius: 2, overflow: 'hidden' }}>
+          {links.map((link, i) => (
+            <Box
+              key={link.id}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
+                px: 2,
+                py: 1.25,
+                borderBottom: i < links.length - 1 ? '1px solid #1f2937' : 'none',
+                bgcolor: editingLink?.id === link.id ? 'rgba(37,99,235,0.06)' : 'transparent',
+              }}
+            >
+              <Typography sx={{ fontSize: 18, lineHeight: 1, width: 24, textAlign: 'center' }}>{link.emoji}</Typography>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="body2" sx={{ fontSize: 13, fontWeight: 500 }}>{link.title}</Typography>
+                <Typography variant="caption" color="text.disabled" sx={{ fontSize: 11, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {link.url}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                <IconButton size="small" onClick={() => startEdit(link)} sx={{ color: 'text.disabled', '&:hover': { color: 'primary.main' }, p: 0.5 }}>
+                  <EditOutlinedIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+                <IconButton size="small" onClick={() => removeLink(link.id)} sx={{ color: 'text.disabled', '&:hover': { color: 'error.main' }, p: 0.5 }}>
+                  <DeleteOutlineIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Box>
+            </Box>
+          ))}
+        </Paper>
+      )}
     </Box>
   )
 }
