@@ -5,7 +5,6 @@ import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined'
 import * as dagre from '@dagrejs/dagre'
 import type { Todo } from '../types'
 import { getPendingBlockers } from '../utils/todoUtils'
-import { fmtElapsed } from '../hooks/useTodoFocus'
 
 const NODE_W = 220
 const NODE_H = 90
@@ -122,10 +121,9 @@ interface NodeCardProps {
   onClick: (todo: Todo) => void
   focused: boolean
   paused: boolean
-  elapsed: number
 }
 
-function NodeCard({ node, onClick, focused, paused, elapsed }: NodeCardProps) {
+function NodeCard({ node, onClick, focused, paused }: NodeCardProps) {
   const { todo, x, y, blocked, pendingDepsCount } = node
   const status = todo.done ? 'done' : focused ? (paused ? 'paused' : 'focused') : blocked ? 'blocked' : 'available'
 
@@ -134,7 +132,7 @@ function NodeCard({ node, onClick, focused, paused, elapsed }: NodeCardProps) {
   const bgColor     = status === 'done' ? '#0d1117' : status === 'focused' ? '#1a1000' : status === 'paused' ? '#110e00' : status === 'blocked' ? '#0d0808' : '#031a0e'
   const textColor   = status === 'done' ? '#6b7280' : status === 'focused' ? '#fef3c7' : status === 'paused' ? '#d6b87a' : status === 'blocked' ? '#6b7280' : '#f0fdf4'
   const statusColor = status === 'done' ? '#6b7280' : status === 'focused' ? '#fbbf24' : status === 'paused' ? '#92400e' : status === 'blocked' ? '#7c3f3f' : '#4ade80'
-  const statusLabel = status === 'done' ? '✓ Done' : status === 'focused' ? `⏱ ${fmtElapsed(elapsed)}` : status === 'paused' ? `⏸ ${fmtElapsed(elapsed)}` : status === 'blocked' ? '🔒 Blocked' : '● Ready'
+  const statusLabel = status === 'done' ? '✓ Done' : status === 'focused' ? '⏱ Focused' : status === 'paused' ? '⏸ Paused' : status === 'blocked' ? '🔒 Blocked' : '● Ready'
 
   const glowStyle = status === 'available'
     ? { boxShadow: '0 0 12px rgba(34,197,94,0.18), 0 0 0 1px rgba(34,197,94,0.12)' }
@@ -220,10 +218,9 @@ interface Props {
   onSelect: (todo: Todo) => void
   focusedId: string | null
   paused: boolean
-  elapsed: number
 }
 
-export default function TodoGraph({ todos, onSelect, focusedId, paused, elapsed }: Props) {
+export default function TodoGraph({ todos, onSelect, focusedId, paused }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerSize, setContainerSize] = useState({ w: 0, h: 520 })
 
@@ -307,7 +304,6 @@ export default function TodoGraph({ todos, onSelect, focusedId, paused, elapsed 
                 onClick={onSelect}
                 focused={node.todo.id === focusedId}
                 paused={paused}
-                elapsed={elapsed}
               />
             ))}
           </div>

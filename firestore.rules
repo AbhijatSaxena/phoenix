@@ -24,6 +24,11 @@ service cloud.firestore {
       allow update: if isAuth() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
+    // Focus state: each user reads/writes only their own doc
+    match /focusState/{uid} {
+      allow read, write: if isAuth() && request.auth.uid == uid;
+    }
+
     // Everything else: authenticated users can read, only admins can write
     match /{document=**} {
       allow read:  if isAuth();
