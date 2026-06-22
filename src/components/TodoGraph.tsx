@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { Box, Paper, Typography } from '@mui/material'
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
-import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline'
+import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined'
 import * as dagre from '@dagrejs/dagre'
 import type { Todo } from '../types'
 import { getPendingBlockers } from '../utils/todoUtils'
@@ -190,7 +190,7 @@ function NodeCard({ node, onClick }: NodeCardProps) {
           )}
           {(todo.commentCount ?? 0) > 0 && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: '#93c5fd' }}>
-              <ChatBubbleOutlineIcon sx={{ fontSize: 11 }} />
+              <CommentOutlinedIcon sx={{ fontSize: 11 }} />
               <Typography sx={{ fontSize: 10, lineHeight: 1, fontWeight: 600 }}>{todo.commentCount}</Typography>
             </Box>
           )}
