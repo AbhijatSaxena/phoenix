@@ -26,7 +26,7 @@ export default function TodosPage() {
   const [newText, setNewText] = useState('')
   const [adding, setAdding] = useState(false)
   const isReadOnly = useIsReadOnly()
-  const { focusedId, elapsed, focus, unfocus } = useTodoFocus()
+  const { focusedId, paused, elapsed, focus, pause, resume, unfocus } = useTodoFocus()
 
   async function handleAddTodo() {
     const text = newText.trim()
@@ -105,8 +105,11 @@ export default function TodosPage() {
           onClose={() => setSelectedTodo(null)}
           onDepsChange={handleDepsChange}
           focusedId={focusedId}
+          paused={paused}
           elapsed={elapsed}
           onFocus={focus}
+          onPause={pause}
+          onResume={resume}
           onUnfocus={unfocus}
         />
       )}
@@ -159,7 +162,7 @@ export default function TodosPage() {
         </Button>
       </Box>
 
-      <TodoGraph todos={graphTodos} onSelect={handleSelect} focusedId={focusedId} elapsed={elapsed} />
+      <TodoGraph todos={graphTodos} onSelect={handleSelect} focusedId={focusedId} paused={paused} elapsed={elapsed} />
 
       {/* Completed todos dialog */}
       <Dialog open={showCompleted} onClose={() => setShowCompleted(false)} maxWidth="sm" fullWidth>
