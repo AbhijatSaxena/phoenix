@@ -4,6 +4,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline'
 import * as dagre from '@dagrejs/dagre'
 import type { Todo } from '../types'
+import { getPendingBlockers } from '../utils/todoUtils'
 
 const NODE_W = 220
 const NODE_H = 90
@@ -67,15 +68,9 @@ function buildLayout(todos: Todo[]): { nodes: LayoutNode[]; edges: Edge[]; width
 
   dagre.layout(g)
 
-  const pendingDeps = (t: Todo) =>
-    (t.dependsOn ?? []).filter(id => {
-      const dep = todos.find(x => x.id === id)
-      return dep !== undefined && !dep.done
-    })
-
   const dagreNodes: LayoutNode[] = dagreTodos.map(t => {
     const pos = g.node(t.id)
-    const pending = pendingDeps(t)
+    const pending = getPendingBlockers(t, todos)
     return { todo: t, x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2, blocked: pending.length > 0, pendingDepsCount: pending.length }
   })
 

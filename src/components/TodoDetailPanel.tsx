@@ -8,6 +8,7 @@ import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
 import type { Todo } from '../types'
+import { getPendingBlockers, isTodoBlocked } from '../utils/todoUtils'
 import { useCommentStore } from '../store/commentStore'
 import { useTodoStore } from '../store/todoStore'
 import { useIsReadOnly } from '../store/authStore'
@@ -112,9 +113,10 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
 
   const others = todos.filter(t => t.id !== todo.id).sort((a, b) => Number(a.done) - Number(b.done))
   const blockedByThis = todos.filter(t => (t.dependsOn ?? []).includes(todo.id))
-  const isBlocked = (todo.dependsOn ?? []).some(id => !todos.find(t => t.id === id)?.done)
-  const statusLabel = todo.done ? '✓ Done' : isBlocked ? '🔒 Blocked' : '● Ready'
-  const statusColor = todo.done ? 'text.disabled' : isBlocked ? 'error.main' : 'primary.main'
+  const blocked = isTodoBlocked(todo, todos)
+  const pendingBlockersCount = getPendingBlockers(todo, todos).length
+  const statusLabel = todo.done ? '✓ Done' : blocked ? '🔒 Blocked' : '● Ready'
+  const statusColor = todo.done ? 'text.disabled' : blocked ? 'error.main' : 'primary.main'
 
   return (
     <Drawer
@@ -211,7 +213,7 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
           sx={{ minHeight: 32, '& .MuiTab-root': { minHeight: 32, fontSize: 12, textTransform: 'none', py: 0.5 } }}
         >
           <Tab label={`Comments${comments.length > 0 ? ` (${comments.length})` : ''}`} />
-          <Tab label={`Blockers${(todo.dependsOn ?? []).length > 0 ? ` (${(todo.dependsOn ?? []).length})` : ''}`} />
+          <Tab label={`Blockers${pendingBlockersCount > 0 ? ` (${pendingBlockersCount})` : ''}`} />
         </Tabs>
       </Box>
 
