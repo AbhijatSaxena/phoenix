@@ -12,7 +12,7 @@ import AdjustOutlinedIcon from '@mui/icons-material/AdjustOutlined'
 import PauseCircleOutlinedIcon from '@mui/icons-material/PauseCircleOutlined'
 import type { Todo } from '../types'
 import { getPendingBlockers, isTodoBlocked } from '../utils/todoUtils'
-import { fmtElapsed } from '../hooks/useTodoFocus'
+import { fmtElapsed, fmtMs } from '../hooks/useTodoFocus'
 import { useCommentStore } from '../store/commentStore'
 import { useTodoStore } from '../store/todoStore'
 import { useIsReadOnly } from '../store/authStore'
@@ -158,9 +158,16 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, fo
       <Box sx={{ p: 2.5, borderBottom: '1px solid #1f2937' }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 2, mb: 2 }}>
           <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="caption" sx={{ color: statusColor, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
-              {statusLabel}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              <Typography variant="caption" sx={{ color: statusColor, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
+                {statusLabel}
+              </Typography>
+              {(todo.focusMs ?? 0) > 0 && (
+                <Typography variant="caption" sx={{ fontSize: 10, color: '#78716c', fontWeight: 500 }}>
+                  ⏱ {fmtMs(todo.focusMs!)} invested
+                </Typography>
+              )}
+            </Box>
             {!isReadOnly && editingTitle ? (
               <TextField
                 size="small"

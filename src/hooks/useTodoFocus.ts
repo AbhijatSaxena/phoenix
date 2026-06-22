@@ -5,6 +5,15 @@ const FOCUS_AT_KEY  = 'phoenix_focus_at'   // null when paused
 const FOCUS_ACC_KEY = 'phoenix_focus_acc'  // accumulated ms before current session
 const FOCUS_PAU_KEY = 'phoenix_focus_paused'
 
+export function fmtMs(ms: number): string {
+  const totalSecs = Math.floor(ms / 1000)
+  const h = Math.floor(totalSecs / 3600)
+  const m = Math.floor((totalSecs % 3600) / 60)
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`
+  if (m > 0) return `${m}m`
+  return '< 1m'
+}
+
 export function fmtElapsed(secs: number): string {
   const h = Math.floor(secs / 3600)
   const m = Math.floor((secs % 3600) / 60)
