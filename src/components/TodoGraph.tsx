@@ -1,5 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
-import { Box, Paper, Typography, Chip } from '@mui/material'
+import { Box, Paper, Typography } from '@mui/material'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline'
 import * as dagre from '@dagrejs/dagre'
 import type { Todo } from '../types'
 
@@ -184,20 +186,18 @@ function NodeCard({ node, onClick }: NodeCardProps) {
         <Typography sx={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', color: statusColor }}>
           {statusLabel}
         </Typography>
-        <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           {pendingDepsCount > 0 && (
-            <Chip
-              label={pendingDepsCount}
-              size="small"
-              sx={{ height: 16, fontSize: 9, bgcolor: '#4c1d95', color: '#a78bfa', '& .MuiChip-label': { px: 0.75 } }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: '#a78bfa' }}>
+              <LockOutlinedIcon sx={{ fontSize: 11 }} />
+              <Typography sx={{ fontSize: 10, lineHeight: 1, fontWeight: 600 }}>{pendingDepsCount}</Typography>
+            </Box>
           )}
           {(todo.commentCount ?? 0) > 0 && (
-            <Chip
-              label={todo.commentCount}
-              size="small"
-              sx={{ height: 16, fontSize: 9, bgcolor: '#1e3a8a', color: '#93c5fd', '& .MuiChip-label': { px: 0.75 } }}
-            />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, color: '#93c5fd' }}>
+              <ChatBubbleOutlineIcon sx={{ fontSize: 11 }} />
+              <Typography sx={{ fontSize: 10, lineHeight: 1, fontWeight: 600 }}>{todo.commentCount}</Typography>
+            </Box>
           )}
         </Box>
       </Box>
