@@ -170,7 +170,7 @@ export default function ZerodhaPage() {
       {!isReadOnly && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Button variant="outlined" size="small" startIcon={<AddIcon />}
-            onClick={() => { setShowForm(v => !v); setEditingId(null); reset(); setCopyPrev({}) }}>
+            onClick={() => { setShowForm(v => !v); setEditingId(null); reset({ date: new Date().toISOString().split('T')[0] }); setCopyPrev({}) }}>
             {showForm ? 'Cancel' : 'Add Entry'}
           </Button>
         </Box>
