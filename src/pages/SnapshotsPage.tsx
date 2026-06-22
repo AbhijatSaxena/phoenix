@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   Box, Paper, Typography, Button, CircularProgress, IconButton,
   Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid,
-  Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip,
 } from '@mui/material'
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -13,7 +13,7 @@ import { useRatesStore } from '../store/ratesStore'
 import { fmtINR, fmtDiff, diffClass, isoToDisplay } from '../lib/fmt'
 import { useIsReadOnly } from '../store/authStore'
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer,
+  LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer,
 } from 'recharts'
 
 export default function SnapshotsPage() {
@@ -109,7 +109,7 @@ export default function SnapshotsPage() {
               <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
               <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 10 }} tickLine={false} />
               <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}L`} />
-              <Tooltip content={<CustomTooltip />} />
+              <RechartsTooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="total" stroke="#2563eb" strokeWidth={2}
                 dot={{ r: 3, fill: '#2563eb', strokeWidth: 0 }}
                 activeDot={{ r: 5, fill: '#60a5fa' }} />
@@ -186,14 +186,16 @@ export default function SnapshotsPage() {
                       sx={{ '& .MuiInputBase-root': { fontSize: 13 } }}
                     />
                   ) : (
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      onClick={() => !isReadOnly && startCellEdit(s.id, 'notes', s.notes)}
-                      sx={{ cursor: isReadOnly ? 'default' : 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', '&:hover': isReadOnly ? {} : { color: 'text.primary' } }}
-                    >
-                      {s.notes || '—'}
-                    </Typography>
+                    <Tooltip title={s.notes || ''} placement="top-start" disableHoverListener={!s.notes} arrow>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        onClick={() => !isReadOnly && startCellEdit(s.id, 'notes', s.notes)}
+                        sx={{ cursor: isReadOnly ? 'default' : 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', '&:hover': isReadOnly ? {} : { color: 'text.primary' } }}
+                      >
+                        {s.notes || '—'}
+                      </Typography>
+                    </Tooltip>
                   )}
                 </TableCell>
 
