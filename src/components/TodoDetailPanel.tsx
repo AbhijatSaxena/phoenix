@@ -12,7 +12,7 @@ import AdjustOutlinedIcon from '@mui/icons-material/AdjustOutlined'
 import PauseCircleOutlinedIcon from '@mui/icons-material/PauseCircleOutlined'
 import type { Todo } from '../types'
 import { getPendingBlockers, isTodoBlocked } from '../utils/todoUtils'
-import { fmtElapsed, fmtMs } from '../hooks/useTodoFocus'
+import { fmtMs } from '../hooks/useTodoFocus'
 import { useCommentStore } from '../store/commentStore'
 import { useTodoStore } from '../store/todoStore'
 import { useIsReadOnly } from '../store/authStore'
@@ -25,7 +25,7 @@ interface Props {
   onDepsChange: (todo: Todo, deps: string[]) => void
   focusedId: string | null
   paused: boolean
-  elapsed: number
+  accMs: number
   onFocus: (id: string) => void
   onPause: () => void
   onResume: () => void
@@ -45,7 +45,7 @@ function wouldCreateCycle(todos: Todo[], targetId: string, newDepId: string): bo
   return reaches(newDepId)
 }
 
-export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, focusedId, paused, elapsed, onFocus, onPause, onResume, onUnfocus }: Props) {
+export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, focusedId, paused, accMs, onFocus, onPause, onResume, onUnfocus }: Props) {
   const [tab, setTab] = useState<TabId>(0)
   const [commentText, setCommentText] = useState('')
   const [newBlockerText, setNewBlockerText] = useState('')
@@ -139,8 +139,7 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, fo
   const pendingBlockersCount = getPendingBlockers(todo, todos).length
   const isFocused = focusedId === todo.id
   const canFocus = !todo.done && !blocked
-  const focusLabel = paused ? `⏸ ${fmtElapsed(elapsed)}` : `⏱ ${fmtElapsed(elapsed)}`
-  const statusLabel = todo.done ? '✓ Done' : isFocused ? focusLabel : blocked ? '🔒 Blocked' : '● Ready'
+  const statusLabel = todo.done ? '✓ Done' : isFocused ? (paused ? '⏸ Paused' : '⏱ Focused') : blocked ? '🔒 Blocked' : '● Ready'
   const statusColor = todo.done ? 'text.disabled' : isFocused ? '#d97706' : blocked ? 'error.main' : 'primary.main'
 
   return (
@@ -162,9 +161,9 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, fo
               <Typography variant="caption" sx={{ color: statusColor, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
                 {statusLabel}
               </Typography>
-              {(todo.focusMs ?? 0) > 0 && (
+              {((todo.focusMs ?? 0) + (isFocused ? accMs : 0)) > 0 && (
                 <Typography variant="caption" sx={{ fontSize: 10, color: '#78716c', fontWeight: 500 }}>
-                  ⏱ {fmtMs(todo.focusMs!)} invested
+                  ⏱ {fmtMs((todo.focusMs ?? 0) + (isFocused ? accMs : 0))} invested
                 </Typography>
               )}
             </Box>
@@ -264,7 +263,7 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, fo
                 borderColor: '#92400e', color: '#d97706',
                 '&:hover': { bgcolor: 'rgba(217,119,6,0.08)', borderColor: '#92400e' } }}
             >
-              {paused ? `Resume  ·  ${fmtElapsed(elapsed)}` : `Pause  ·  ${fmtElapsed(elapsed)}`}
+              {paused ? (accMs > 0 ? `Resume  ·  ${fmtMs(accMs)}` : 'Resume') : 'Pause'}
             </Button>
             <Button
               size="small" variant="contained"

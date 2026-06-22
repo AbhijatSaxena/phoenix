@@ -282,6 +282,29 @@ export function watchSession(sessionId: string, onRevoked: () => void): () => vo
 
 export { Timestamp }
 
+// ─── Focus State ─────────────────────────────────────────────────────────────
+
+export interface FocusStateDoc {
+  focusId: string | null
+  focusAt: number | null
+  focusAcc: number
+  focusPaused: boolean
+}
+
+export async function saveFocusState(uid: string, state: FocusStateDoc) {
+  await setDoc(doc(db, 'focusState', uid), state)
+}
+
+export async function clearFocusState(uid: string) {
+  await deleteDoc(doc(db, 'focusState', uid))
+}
+
+export function watchFocusState(uid: string, onChange: (state: FocusStateDoc | null) => void): () => void {
+  return onSnapshot(doc(db, 'focusState', uid), snap => {
+    onChange(snap.exists() ? (snap.data() as FocusStateDoc) : null)
+  })
+}
+
 // ─── Quick Links ─────────────────────────────────────────────────────────────
 
 export async function fetchLinks() {

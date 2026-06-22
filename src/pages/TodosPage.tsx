@@ -26,14 +26,14 @@ export default function TodosPage() {
   const [newText, setNewText] = useState('')
   const [adding, setAdding] = useState(false)
   const isReadOnly = useIsReadOnly()
-  const { focusedId, paused, elapsed, focus, pause, resume, unfocus } = useTodoFocus()
+  const { focusedId, paused, accMs, focus, pause, resume, unfocus } = useTodoFocus()
 
   async function handleStop() {
-    if (focusedId && elapsed > 0) {
-      const todo = todos.find(t => t.id === focusedId)
-      if (todo) await update({ ...todo, focusMs: (todo.focusMs ?? 0) + elapsed * 1000 })
+    const { id, totalMs } = await unfocus()
+    if (id && totalMs > 0) {
+      const todo = todos.find(t => t.id === id)
+      if (todo) await update({ ...todo, focusMs: (todo.focusMs ?? 0) + totalMs })
     }
-    unfocus()
   }
 
   async function handleAddTodo() {
@@ -114,7 +114,7 @@ export default function TodosPage() {
           onDepsChange={handleDepsChange}
           focusedId={focusedId}
           paused={paused}
-          elapsed={elapsed}
+          accMs={accMs}
           onFocus={focus}
           onPause={pause}
           onResume={resume}
@@ -170,7 +170,7 @@ export default function TodosPage() {
         </Button>
       </Box>
 
-      <TodoGraph todos={graphTodos} onSelect={handleSelect} focusedId={focusedId} paused={paused} elapsed={elapsed} />
+      <TodoGraph todos={graphTodos} onSelect={handleSelect} focusedId={focusedId} paused={paused} />
 
       {/* Completed todos dialog */}
       <Dialog open={showCompleted} onClose={() => setShowCompleted(false)} maxWidth="sm" fullWidth>
