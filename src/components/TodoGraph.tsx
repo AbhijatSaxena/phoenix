@@ -11,6 +11,7 @@ interface LayoutNode {
   x: number
   y: number
   blocked: boolean
+  pendingDepsCount: number
 }
 
 interface Edge {
@@ -64,15 +65,16 @@ function buildLayout(todos: Todo[]): { nodes: LayoutNode[]; edges: Edge[]; width
 
   dagre.layout(g)
 
-  const isBlocked = (t: Todo) =>
-    (t.dependsOn ?? []).some(id => {
+  const pendingDeps = (t: Todo) =>
+    (t.dependsOn ?? []).filter(id => {
       const dep = todos.find(x => x.id === id)
       return dep !== undefined && !dep.done
     })
 
   const dagreNodes: LayoutNode[] = dagreTodos.map(t => {
     const pos = g.node(t.id)
-    return { todo: t, x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2, blocked: isBlocked(t) }
+    const pending = pendingDeps(t)
+    return { todo: t, x: pos.x - NODE_W / 2, y: pos.y - NODE_H / 2, blocked: pending.length > 0, pendingDepsCount: pending.length }
   })
 
   // Place orphan done todos in a grid below all dagre nodes
@@ -87,6 +89,7 @@ function buildLayout(todos: Todo[]): { nodes: LayoutNode[]; edges: Edge[]; width
     x: 40 + (i % orphanPerRow) * (NODE_W + 30),
     y: orphanStartY + Math.floor(i / orphanPerRow) * (NODE_H + 30),
     blocked: false,
+    pendingDepsCount: 0,
   }))
 
   const nodes = [...dagreNodes, ...orphanNodes]
@@ -122,7 +125,7 @@ interface NodeCardProps {
 }
 
 function NodeCard({ node, onClick }: NodeCardProps) {
-  const { todo, x, y, blocked } = node
+  const { todo, x, y, blocked, pendingDepsCount } = node
   const status = todo.done ? 'done' : blocked ? 'blocked' : 'available'
   const accentColor = status === 'done' ? '#374151' : status === 'blocked' ? '#dc2626' : '#2563eb'
   const borderColor = status === 'done' ? '#1f2937' : status === 'blocked' ? '#7f1d1d' : '#1e3a8a'
@@ -180,9 +183,9 @@ function NodeCard({ node, onClick }: NodeCardProps) {
           {statusLabel}
         </Typography>
         <Box sx={{ display: 'flex', gap: 0.75, alignItems: 'center' }}>
-          {(todo.dependsOn ?? []).length > 0 && (
+          {pendingDepsCount > 0 && (
             <Chip
-              label={(todo.dependsOn ?? []).length}
+              label={pendingDepsCount}
               size="small"
               sx={{ height: 16, fontSize: 9, bgcolor: '#4c1d95', color: '#a78bfa', '& .MuiChip-label': { px: 0.75 } }}
             />
