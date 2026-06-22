@@ -281,3 +281,20 @@ export function watchSession(sessionId: string, onRevoked: () => void): () => vo
 }
 
 export { Timestamp }
+
+// ─── Quick Links ─────────────────────────────────────────────────────────────
+
+export async function fetchLinks() {
+  const snap = await getDocs(query(collection(db, 'links'), orderBy('order')))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+export async function saveLink(link: { id?: string; title: string; url: string; emoji: string; order: number }) {
+  const id = link.id ?? (Date.now().toString(36) + Math.random().toString(36).slice(2))
+  await setDoc(doc(db, 'links', id), { title: link.title, url: link.url, emoji: link.emoji, order: link.order })
+  return id
+}
+
+export async function deleteLink(id: string) {
+  await deleteDoc(doc(db, 'links', id))
+}

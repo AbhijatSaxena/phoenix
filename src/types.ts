@@ -102,6 +102,16 @@ export interface ZerodhaConfig {
   capital: number
 }
 
+// ─── Quick Links ─────────────────────────────────────────────────────────────
+
+export interface QuickLink {
+  id: string
+  title: string
+  url: string
+  emoji: string
+  order: number
+}
+
 export interface ZerodhaEntry {
   id: string
   date: string   // ISO date string
