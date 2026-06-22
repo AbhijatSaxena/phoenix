@@ -5,6 +5,7 @@ import CommentOutlinedIcon from '@mui/icons-material/CommentOutlined'
 import * as dagre from '@dagrejs/dagre'
 import type { Todo } from '../types'
 import { getPendingBlockers } from '../utils/todoUtils'
+import { fmtElapsed } from '../hooks/useTodoFocus'
 
 const NODE_W = 220
 const NODE_H = 90
@@ -119,15 +120,26 @@ function buildLayout(todos: Todo[]): { nodes: LayoutNode[]; edges: Edge[]; width
 interface NodeCardProps {
   node: LayoutNode
   onClick: (todo: Todo) => void
+  focused: boolean
+  elapsed: number
 }
 
-function NodeCard({ node, onClick }: NodeCardProps) {
+function NodeCard({ node, onClick, focused, elapsed }: NodeCardProps) {
   const { todo, x, y, blocked, pendingDepsCount } = node
-  const status = todo.done ? 'done' : blocked ? 'blocked' : 'available'
-  const accentColor = status === 'done' ? '#374151' : status === 'blocked' ? '#7c3f3f' : '#22c55e'
-  const borderColor = status === 'done' ? '#1f2937' : status === 'blocked' ? '#3d1f1f' : '#14532d'
-  const statusLabel = status === 'done' ? '✓ Done' : status === 'blocked' ? '🔒 Blocked' : '● Ready'
-  const statusColor = status === 'done' ? '#6b7280' : status === 'blocked' ? '#7c3f3f' : '#4ade80'
+  const status = todo.done ? 'done' : focused ? 'focused' : blocked ? 'blocked' : 'available'
+
+  const accentColor = status === 'done' ? '#374151' : status === 'focused' ? '#d97706' : status === 'blocked' ? '#7c3f3f' : '#22c55e'
+  const borderColor = status === 'done' ? '#1f2937' : status === 'focused' ? '#92400e' : status === 'blocked' ? '#3d1f1f' : '#14532d'
+  const bgColor     = status === 'done' ? '#0d1117' : status === 'focused' ? '#1a1000' : status === 'blocked' ? '#0d0808' : '#031a0e'
+  const textColor   = status === 'done' ? '#6b7280' : status === 'focused' ? '#fef3c7' : status === 'blocked' ? '#6b7280' : '#f0fdf4'
+  const statusColor = status === 'done' ? '#6b7280' : status === 'focused' ? '#fbbf24' : status === 'blocked' ? '#7c3f3f' : '#4ade80'
+  const statusLabel = status === 'done' ? '✓ Done' : status === 'focused' ? `⏱ ${fmtElapsed(elapsed)}` : status === 'blocked' ? '🔒 Blocked' : '● Ready'
+
+  const glowStyle = status === 'available'
+    ? { boxShadow: '0 0 12px rgba(34,197,94,0.18), 0 0 0 1px rgba(34,197,94,0.12)' }
+    : status === 'focused'
+    ? { boxShadow: '0 0 16px rgba(217,119,6,0.3), 0 0 0 1px rgba(217,119,6,0.2)' }
+    : {}
 
   return (
     <Paper
@@ -143,17 +155,19 @@ function NodeCard({ node, onClick }: NodeCardProps) {
         border: `1.5px solid ${borderColor}`,
         borderLeft: `4px solid ${accentColor}`,
         borderRadius: '10px',
-        bgcolor: status === 'done' ? '#0d1117' : status === 'blocked' ? '#0d0808' : '#031a0e',
+        bgcolor: bgColor,
         opacity: status === 'done' ? 0.65 : status === 'blocked' ? 0.7 : 1,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         p: '10px 12px',
         transition: 'box-shadow 0.15s, border-color 0.15s',
-        boxShadow: status === 'available' ? '0 0 12px rgba(34,197,94,0.18), 0 0 0 1px rgba(34,197,94,0.12)' : 'none',
+        ...glowStyle,
         '&:hover': {
           boxShadow: status === 'available'
             ? '0 0 20px rgba(34,197,94,0.3), 0 0 0 2px rgba(34,197,94,0.4)'
+            : status === 'focused'
+            ? '0 0 24px rgba(217,119,6,0.45), 0 0 0 2px rgba(217,119,6,0.4)'
             : `0 0 0 2px ${accentColor}55`,
         },
         userSelect: 'none',
@@ -164,7 +178,7 @@ function NodeCard({ node, onClick }: NodeCardProps) {
         sx={{
           fontSize: 12,
           lineHeight: 1.45,
-          color: status === 'done' ? '#6b7280' : status === 'blocked' ? '#6b7280' : '#f0fdf4',
+          color: textColor,
           textDecoration: todo.done ? 'line-through' : 'none',
           wordBreak: 'break-word',
           flex: 1,
@@ -203,9 +217,11 @@ function NodeCard({ node, onClick }: NodeCardProps) {
 interface Props {
   todos: Todo[]
   onSelect: (todo: Todo) => void
+  focusedId: string | null
+  elapsed: number
 }
 
-export default function TodoGraph({ todos, onSelect }: Props) {
+export default function TodoGraph({ todos, onSelect, focusedId, elapsed }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const [containerSize, setContainerSize] = useState({ w: 0, h: 520 })
 
@@ -283,7 +299,13 @@ export default function TodoGraph({ todos, onSelect }: Props) {
           {/* Nodes */}
           <div style={{ position: 'relative', width, height }}>
             {nodes.map(node => (
-              <NodeCard key={node.todo.id} node={node} onClick={onSelect} />
+              <NodeCard
+                key={node.todo.id}
+                node={node}
+                onClick={onSelect}
+                focused={node.todo.id === focusedId}
+                elapsed={elapsed}
+              />
             ))}
           </div>
 
