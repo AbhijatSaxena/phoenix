@@ -127,10 +127,10 @@ interface NodeCardProps {
 function NodeCard({ node, onClick }: NodeCardProps) {
   const { todo, x, y, blocked, pendingDepsCount } = node
   const status = todo.done ? 'done' : blocked ? 'blocked' : 'available'
-  const accentColor = status === 'done' ? '#374151' : status === 'blocked' ? '#dc2626' : '#2563eb'
-  const borderColor = status === 'done' ? '#1f2937' : status === 'blocked' ? '#7f1d1d' : '#1e3a8a'
+  const accentColor = status === 'done' ? '#374151' : status === 'blocked' ? '#7c3f3f' : '#22c55e'
+  const borderColor = status === 'done' ? '#1f2937' : status === 'blocked' ? '#3d1f1f' : '#14532d'
   const statusLabel = status === 'done' ? '✓ Done' : status === 'blocked' ? '🔒 Blocked' : '● Ready'
-  const statusColor = status === 'done' ? '#6b7280' : status === 'blocked' ? '#dc2626' : '#60a5fa'
+  const statusColor = status === 'done' ? '#6b7280' : status === 'blocked' ? '#7c3f3f' : '#4ade80'
 
   return (
     <Paper
@@ -146,16 +146,18 @@ function NodeCard({ node, onClick }: NodeCardProps) {
         border: `1.5px solid ${borderColor}`,
         borderLeft: `4px solid ${accentColor}`,
         borderRadius: '10px',
-        bgcolor: status === 'done' ? '#0d1117' : status === 'blocked' ? '#0f0a0a' : '#0f172a',
-        opacity: status === 'done' ? 0.65 : 1,
+        bgcolor: status === 'done' ? '#0d1117' : status === 'blocked' ? '#0d0808' : '#031a0e',
+        opacity: status === 'done' ? 0.65 : status === 'blocked' ? 0.7 : 1,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         p: '10px 12px',
         transition: 'box-shadow 0.15s, border-color 0.15s',
-        boxShadow: status === 'available' ? '0 0 0 1px rgba(37,99,235,0.15)' : 'none',
+        boxShadow: status === 'available' ? '0 0 12px rgba(34,197,94,0.18), 0 0 0 1px rgba(34,197,94,0.12)' : 'none',
         '&:hover': {
-          boxShadow: `0 0 0 2px ${accentColor}66`,
+          boxShadow: status === 'available'
+            ? '0 0 20px rgba(34,197,94,0.3), 0 0 0 2px rgba(34,197,94,0.4)'
+            : `0 0 0 2px ${accentColor}55`,
         },
         userSelect: 'none',
       }}
@@ -165,7 +167,7 @@ function NodeCard({ node, onClick }: NodeCardProps) {
         sx={{
           fontSize: 12,
           lineHeight: 1.45,
-          color: status === 'done' ? '#6b7280' : status === 'blocked' ? '#9ca3af' : '#e5e7eb',
+          color: status === 'done' ? '#6b7280' : status === 'blocked' ? '#6b7280' : '#f0fdf4',
           textDecoration: todo.done ? 'line-through' : 'none',
           wordBreak: 'break-word',
           flex: 1,
@@ -258,7 +260,7 @@ export default function TodoGraph({ todos, onSelect }: Props) {
                 <path d="M0,0 L0,6 L8,3 z" fill="#16a34a" />
               </marker>
               <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-                <path d="M0,0 L0,6 L8,3 z" fill="#dc2626" />
+                <path d="M0,0 L0,6 L8,3 z" fill="#7c3f3f" />
               </marker>
             </defs>
 
@@ -267,7 +269,7 @@ export default function TodoGraph({ todos, onSelect }: Props) {
               const mid1y = y1 + (y2 - y1) * 0.4
               const mid2y = y1 + (y2 - y1) * 0.6
               const d = `M ${x1} ${y1} C ${x1} ${mid1y}, ${x2} ${mid2y}, ${x2} ${y2}`
-              const color = e.done ? '#16a34a' : '#dc2626'
+              const color = e.done ? '#16a34a' : '#7c3f3f'
               return (
                 <path
                   key={`${e.source}-${e.target}`}
