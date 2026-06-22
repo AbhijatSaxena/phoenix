@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   Drawer, Box, Typography, IconButton, Tabs, Tab, TextField, Button,
-  CircularProgress, Divider, Chip, Checkbox,
+  CircularProgress, Divider, Checkbox,
 } from '@mui/material'
 import CloseIcon from '@mui/icons-material/Close'
 import CheckCircleOutlinedIcon from '@mui/icons-material/CheckCircleOutlined'
 import InventoryOutlinedIcon from '@mui/icons-material/InventoryOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlined'
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined'
 import type { Todo } from '../types'
 import { getPendingBlockers, isTodoBlocked } from '../utils/todoUtils'
 import { useCommentStore } from '../store/commentStore'
@@ -111,8 +112,19 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
     onDepsChange(todo, Array.from(current))
   }
 
-  const others = todos.filter(t => t.id !== todo.id).sort((a, b) => Number(a.done) - Number(b.done))
   const blockedByThis = todos.filter(t => (t.dependsOn ?? []).includes(todo.id))
+  const activeDeps = (todo.dependsOn ?? [])
+    .map(id => todos.find(t => t.id === id))
+    .filter((t): t is Todo => t !== undefined && !t.done)
+  const resolvedDeps = (todo.dependsOn ?? [])
+    .map(id => todos.find(t => t.id === id))
+    .filter((t): t is Todo => t !== undefined && t.done)
+  const linkableTodos = todos.filter(t =>
+    t.id !== todo.id &&
+    !t.done &&
+    !(todo.dependsOn ?? []).includes(t.id) &&
+    !wouldCreateCycle(todos, todo.id, t.id)
+  )
   const blocked = isTodoBlocked(todo, todos)
   const pendingBlockersCount = getPendingBlockers(todo, todos).length
   const statusLabel = todo.done ? '✓ Done' : blocked ? '🔒 Blocked' : '● Ready'
@@ -272,8 +284,45 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
 
       {/* Blockers tab */}
       {tab === 1 && (
-        <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5, display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <Box sx={{ flex: 1, overflowY: 'auto', p: 2.5, display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
+          {/* Active blockers */}
+          <Box>
+            <Typography variant="overline" sx={{ fontSize: 10, display: 'block', mb: 0.75 }}>Currently blocking</Typography>
+            {activeDeps.length === 0 ? (
+              <Typography variant="body2" sx={{ fontSize: 12, color: 'success.main', py: 0.5 }}>✓ Nothing is blocking this todo</Typography>
+            ) : activeDeps.map(dep => (
+              <Box key={dep.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1, borderRadius: 2, '&:hover': isReadOnly ? {} : { bgcolor: 'action.hover' } }}>
+                <LockOutlinedIcon sx={{ fontSize: 13, color: '#a78bfa', flexShrink: 0 }} />
+                <Typography variant="body2" sx={{ flex: 1, fontSize: 13, color: 'text.secondary' }}>{dep.text}</Typography>
+                {!isReadOnly && (
+                  <IconButton size="small" onClick={() => toggleDep(dep.id)} sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'error.main' } }}>
+                    <CloseIcon sx={{ fontSize: 12 }} />
+                  </IconButton>
+                )}
+              </Box>
+            ))}
+          </Box>
+
+          {/* Resolved deps */}
+          {resolvedDeps.length > 0 && (
+            <Box>
+              <Typography variant="overline" sx={{ fontSize: 10, display: 'block', mb: 0.75, color: 'success.main' }}>Resolved</Typography>
+              {resolvedDeps.map(dep => (
+                <Box key={dep.id} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1, borderRadius: 2, opacity: 0.55 }}>
+                  <CheckCircleOutlinedIcon sx={{ fontSize: 13, color: 'success.main', flexShrink: 0 }} />
+                  <Typography variant="body2" sx={{ flex: 1, fontSize: 13, color: 'text.disabled', textDecoration: 'line-through' }}>{dep.text}</Typography>
+                  {!isReadOnly && (
+                    <IconButton size="small" onClick={() => toggleDep(dep.id)} sx={{ color: 'text.disabled', p: 0.25, '&:hover': { color: 'text.secondary' } }}>
+                      <CloseIcon sx={{ fontSize: 12 }} />
+                    </IconButton>
+                  )}
+                </Box>
+              ))}
+            </Box>
+          )}
+
+          {/* Add blockers */}
           {!isReadOnly && (
             <Box>
               <Typography variant="overline" sx={{ fontSize: 10, display: 'block', mb: 0.5 }}>Create new blocker</Typography>
@@ -294,65 +343,29 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange }: 
             </Box>
           )}
 
-          <Box>
-            <Typography variant="overline" sx={{ fontSize: 10, display: 'block', mb: 0.5 }}>Link existing todos</Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-              Checked todos must be completed before this one.
-            </Typography>
-            {others.length === 0 ? (
-              <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', py: 2 }}>No other todos.</Typography>
-            ) : (
+          {/* Link existing */}
+          {linkableTodos.length > 0 && (
+            <Box>
+              <Typography variant="overline" sx={{ fontSize: 10, display: 'block', mb: 0.5 }}>Link existing todo</Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                Must be completed before this one.
+              </Typography>
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.25 }}>
-                {(() => {
-                  const linkable = others.filter(t => {
-                    const isChecked = (todo.dependsOn ?? []).includes(t.id)
-                    return isChecked || !wouldCreateCycle(todos, todo.id, t.id)
-                  })
-                  const firstDoneIdx = linkable.findIndex(t => t.done)
-                  return linkable.map((t, i) => {
-                    const isChecked = (todo.dependsOn ?? []).includes(t.id)
-                    return (
-                      <Box key={t.id}>
-                        {i === firstDoneIdx && firstDoneIdx > 0 && (
-                          <Divider sx={{ my: 1 }}>
-                            <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>Completed</Typography>
-                          </Divider>
-                        )}
-                    <Box
-                      key={t.id}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 1.5,
-                        p: 1,
-                        borderRadius: 2,
-                        cursor: isReadOnly ? 'default' : 'pointer',
-                        '&:hover': isReadOnly ? {} : { bgcolor: 'action.hover' },
-                      }}
-                      onClick={() => !isReadOnly && toggleDep(t.id)}
-                    >
-                      <Checkbox
-                        checked={isChecked}
-                        disabled={isReadOnly}
-                        size="small"
-                        sx={{ p: 0 }}
-                      />
-                      <Typography
-                        variant="body2"
-                        sx={{ flex: 1, color: t.done ? 'text.disabled' : 'text.secondary', textDecoration: t.done ? 'line-through' : 'none', fontSize: 13 }}
-                      >
-                        {t.text}
-                      </Typography>
-                      {t.done && <Chip label="Done" size="small" color="success" sx={{ height: 16, fontSize: 9 }} />}
-                    </Box>
-                    </Box>
-                  )
-                  })
-                })()}
+                {linkableTodos.map(t => (
+                  <Box
+                    key={t.id}
+                    sx={{ display: 'flex', alignItems: 'center', gap: 1.5, p: 1, borderRadius: 2, cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { bgcolor: 'action.hover' } }}
+                    onClick={() => !isReadOnly && toggleDep(t.id)}
+                  >
+                    <Checkbox checked={false} disabled={isReadOnly} size="small" sx={{ p: 0 }} />
+                    <Typography variant="body2" sx={{ flex: 1, fontSize: 13, color: 'text.secondary' }}>{t.text}</Typography>
+                  </Box>
+                ))}
               </Box>
-            )}
-          </Box>
+            </Box>
+          )}
 
+          {/* This unblocks */}
           {blockedByThis.length > 0 && (
             <Box>
               <Divider sx={{ mb: 2 }} />
