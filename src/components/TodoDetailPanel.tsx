@@ -24,8 +24,11 @@ interface Props {
   onClose: () => void
   onDepsChange: (todo: Todo, deps: string[]) => void
   focusedId: string | null
+  paused: boolean
   elapsed: number
   onFocus: (id: string) => void
+  onPause: () => void
+  onResume: () => void
   onUnfocus: () => void
 }
 
@@ -42,7 +45,7 @@ function wouldCreateCycle(todos: Todo[], targetId: string, newDepId: string): bo
   return reaches(newDepId)
 }
 
-export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, focusedId, elapsed, onFocus, onUnfocus }: Props) {
+export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, focusedId, paused, elapsed, onFocus, onPause, onResume, onUnfocus }: Props) {
   const [tab, setTab] = useState<TabId>(0)
   const [commentText, setCommentText] = useState('')
   const [newBlockerText, setNewBlockerText] = useState('')
@@ -136,7 +139,8 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, fo
   const pendingBlockersCount = getPendingBlockers(todo, todos).length
   const isFocused = focusedId === todo.id
   const canFocus = !todo.done && !blocked
-  const statusLabel = todo.done ? '✓ Done' : isFocused ? `⏱ ${fmtElapsed(elapsed)}` : blocked ? '🔒 Blocked' : '● Ready'
+  const focusLabel = paused ? `⏸ ${fmtElapsed(elapsed)}` : `⏱ ${fmtElapsed(elapsed)}`
+  const statusLabel = todo.done ? '✓ Done' : isFocused ? focusLabel : blocked ? '🔒 Blocked' : '● Ready'
   const statusColor = todo.done ? 'text.disabled' : isFocused ? '#d97706' : blocked ? 'error.main' : 'primary.main'
 
   return (
@@ -228,30 +232,42 @@ export default function TodoDetailPanel({ todo, todos, onClose, onDepsChange, fo
           </Box>
         )}
 
-        {canFocus && (
+        {canFocus && !isFocused && (
           <Button
-            fullWidth
-            size="small"
-            variant={isFocused ? 'contained' : 'outlined'}
-            startIcon={isFocused ? <PauseCircleOutlinedIcon sx={{ fontSize: 14 }} /> : <AdjustOutlinedIcon sx={{ fontSize: 14 }} />}
-            onClick={isFocused ? onUnfocus : () => onFocus(todo.id)}
-            sx={{
-              mb: 1.5,
-              fontSize: 11,
-              py: 0.75,
-              textTransform: 'none',
-              borderColor: isFocused ? 'transparent' : '#92400e',
-              bgcolor: isFocused ? '#d97706' : 'transparent',
-              color: isFocused ? '#1a1000' : '#d97706',
-              fontWeight: 600,
-              '&:hover': {
-                bgcolor: isFocused ? '#b45309' : 'rgba(217,119,6,0.08)',
-                borderColor: '#92400e',
-              },
-            }}
+            fullWidth size="small" variant="outlined"
+            startIcon={<AdjustOutlinedIcon sx={{ fontSize: 14 }} />}
+            onClick={() => onFocus(todo.id)}
+            sx={{ mb: 1.5, fontSize: 11, py: 0.75, textTransform: 'none', fontWeight: 600,
+              borderColor: '#92400e', color: '#d97706',
+              '&:hover': { bgcolor: 'rgba(217,119,6,0.08)', borderColor: '#92400e' } }}
           >
-            {isFocused ? `Stop focus  ·  ${fmtElapsed(elapsed)}` : 'Focus on this'}
+            Focus on this
           </Button>
+        )}
+
+        {isFocused && (
+          <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+            <Button
+              size="small" variant="outlined" fullWidth
+              startIcon={paused
+                ? <AdjustOutlinedIcon sx={{ fontSize: 14 }} />
+                : <PauseCircleOutlinedIcon sx={{ fontSize: 14 }} />}
+              onClick={paused ? onResume : onPause}
+              sx={{ fontSize: 11, py: 0.75, textTransform: 'none', fontWeight: 600,
+                borderColor: '#92400e', color: '#d97706',
+                '&:hover': { bgcolor: 'rgba(217,119,6,0.08)', borderColor: '#92400e' } }}
+            >
+              {paused ? `Resume  ·  ${fmtElapsed(elapsed)}` : `Pause  ·  ${fmtElapsed(elapsed)}`}
+            </Button>
+            <Button
+              size="small" variant="contained"
+              onClick={onUnfocus}
+              sx={{ fontSize: 11, py: 0.75, textTransform: 'none', fontWeight: 600, px: 2,
+                bgcolor: '#7c3f3f', '&:hover': { bgcolor: '#991b1b' } }}
+            >
+              Stop
+            </Button>
+          </Box>
         )}
 
         <Tabs
