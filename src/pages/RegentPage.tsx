@@ -78,7 +78,11 @@ export default function RegentPage() {
   const [editEmiId, setEditEmiId] = useState<string | null>(null)
   const [editEmiValue, setEditEmiValue] = useState('')
   const [editPaymentIndex, setEditPaymentIndex] = useState<number | null>(null)
+  const [editPaymentLabel, setEditPaymentLabel] = useState('')
   const [editPaymentValue, setEditPaymentValue] = useState('')
+  const [showAddPayment, setShowAddPayment] = useState(false)
+  const [newPayLabel, setNewPayLabel] = useState('')
+  const [newPayAmount, setNewPayAmount] = useState('')
 
   const { register: regEmi, handleSubmit: handleEmi, reset: resetEmi } = useForm<EmiForm>()
   const isReadOnly = useIsReadOnly()
@@ -114,11 +118,30 @@ export default function RegentPage() {
 
   async function commitPayment(i: number) {
     const val = parseFloat(editPaymentValue)
-    if (!isNaN(val)) {
-      const payments = config!.payments.map((p, idx) => idx === i ? { ...p, amount: val } : p)
+    if (!isNaN(val) && editPaymentLabel.trim()) {
+      const payments = config!.payments.map((p, idx) =>
+        idx === i ? { label: editPaymentLabel.trim(), amount: val } : p
+      )
       await persist({ ...config!, payments })
     }
     setEditPaymentIndex(null)
+  }
+
+  async function addPayment() {
+    const amt = parseFloat(newPayAmount)
+    if (!newPayLabel.trim() || isNaN(amt)) return
+    const payments = [...config!.payments, { label: newPayLabel.trim(), amount: amt }]
+    await persist({ ...config!, payments })
+    setNewPayLabel('')
+    setNewPayAmount('')
+    setShowAddPayment(false)
+  }
+
+  async function removePayment(i: number) {
+    const p = config!.payments[i]
+    const ok = await confirm({ title: 'Remove payment', message: `Remove "${p.label}" (₹${fmtINR(p.amount)})?` })
+    if (!ok) return
+    await persist({ ...config!, payments: config!.payments.filter((_, idx) => idx !== i) })
   }
 
   async function onAddEmi(data: EmiForm) {
@@ -211,26 +234,63 @@ export default function RegentPage() {
 
         <Grid size={{ xs: 12, md: 6 }}>
           <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937', mb: 2.5 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Payments Made</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Payments Made</Typography>
+              {!isReadOnly && (
+                <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setShowAddPayment(v => !v)}>
+                  Add
+                </Button>
+              )}
+            </Box>
+
+            {showAddPayment && (
+              <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+                <TextField size="small" placeholder="Label" value={newPayLabel}
+                  onChange={e => setNewPayLabel(e.target.value)} sx={{ flex: 1, minWidth: 120 }} />
+                <TextField size="small" type="number" placeholder="Amount (₹)" value={newPayAmount}
+                  onChange={e => setNewPayAmount(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && addPayment()}
+                  sx={{ width: 140 }} />
+                <Button variant="contained" size="small" onClick={addPayment}>Add</Button>
+              </Box>
+            )}
+
             {config.payments.map((p, i) => (
-              <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, borderBottom: '1px solid #1f2937' }}>
-                <Typography variant="body2" color="text.secondary" noWrap sx={{ maxWidth: 160 }}>{p.label}</Typography>
+              <Box key={i} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.25, borderBottom: '1px solid #1f2937', '&:hover .del-pay': { opacity: 1 } }}>
                 {!isReadOnly && editPaymentIndex === i ? (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
+                  <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
+                    <TextField size="small" value={editPaymentLabel} onChange={e => setEditPaymentLabel(e.target.value)}
+                      sx={{ flex: 1 }} autoFocus />
                     <TextField size="small" type="number" value={editPaymentValue} onChange={e => setEditPaymentValue(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && commitPayment(i)} slotProps={{ htmlInput: { style: { width: 110 } } }} autoFocus />
+                      onKeyDown={e => { if (e.key === 'Enter') commitPayment(i); if (e.key === 'Escape') setEditPaymentIndex(null) }}
+                      slotProps={{ htmlInput: { style: { width: 100 } } }} />
                     <Button size="small" variant="contained" onClick={() => commitPayment(i)} sx={{ minWidth: 0, px: 1.5 }}>OK</Button>
                   </Box>
-                ) : isReadOnly ? (
-                  <Typography variant="body2">₹{fmtINR(p.amount)}</Typography>
                 ) : (
-                  <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-                    onClick={() => { setEditPaymentIndex(i); setEditPaymentValue(String(p.amount)) }}>
-                    ₹{fmtINR(p.amount)}
-                  </Typography>
+                  <>
+                    <Typography variant="body2" color="text.secondary" noWrap
+                      sx={{ maxWidth: 180, cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}
+                      onClick={() => !isReadOnly && (setEditPaymentIndex(i), setEditPaymentLabel(p.label), setEditPaymentValue(String(p.amount)))}>
+                      {p.label}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                      <Typography variant="body2"
+                        sx={{ cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}
+                        onClick={() => !isReadOnly && (setEditPaymentIndex(i), setEditPaymentLabel(p.label), setEditPaymentValue(String(p.amount)))}>
+                        ₹{fmtINR(p.amount)}
+                      </Typography>
+                      {!isReadOnly && (
+                        <IconButton className="del-pay" size="small" onClick={() => removePayment(i)}
+                          sx={{ opacity: 0, transition: 'opacity 0.15s', color: 'error.main', p: 0.25 }}>
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </>
                 )}
               </Box>
             ))}
+
             <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
               <Typography variant="body2" color="text.secondary">Home Loan EMIs (sum)</Typography>
               <Typography variant="body2">₹{fmtINR(emiSum)}</Typography>
