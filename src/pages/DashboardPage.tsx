@@ -38,12 +38,13 @@ interface EditForm { usd: number; cad: number; inr: number }
 export default function DashboardPage() {
   const { accounts, loading, load, update } = useDashboardStore()
   const rates = useRatesStore(s => s.rates)
-  const { saveSnapshot, load: loadSnapshots } = useSnapshotStore()
+  const { saveSnapshot, checkTodayExists, load: loadSnapshots } = useSnapshotStore()
 
   const [editing, setEditing] = useState<Account | null>(null)
   const [snapshotNote, setSnapshotNote] = useState('')
   const [showSnapshotModal, setShowSnapshotModal] = useState(false)
   const [savingSnapshot, setSavingSnapshot] = useState(false)
+  const [snapshotStep, setSnapshotStep] = useState<'compose' | 'confirm-overwrite'>('compose')
   const [collapsed, setCollapsed] = useState<Record<Category, boolean>>({ liquid: false, appreciating: false, depreciating: false })
 
   const { register, handleSubmit, reset } = useForm<EditForm>()
@@ -81,11 +82,26 @@ export default function DashboardPage() {
   }
 
   async function handleSaveSnapshot() {
+    if (snapshotStep === 'compose' && checkTodayExists()) {
+      setSnapshotStep('confirm-overwrite')
+      return
+    }
+    await doSave(true)
+  }
+
+  async function doSave(overwrite: boolean) {
     setSavingSnapshot(true)
-    await saveSnapshot(liquid, appreciating, depreciating, snapshotNote)
+    await saveSnapshot(liquid, appreciating, depreciating, snapshotNote, overwrite)
     await loadSnapshots()
     setSavingSnapshot(false)
     setShowSnapshotModal(false)
+    setSnapshotNote('')
+    setSnapshotStep('compose')
+  }
+
+  function closeSnapshotModal() {
+    setShowSnapshotModal(false)
+    setSnapshotStep('compose')
     setSnapshotNote('')
   }
 
@@ -266,36 +282,60 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* Snapshot dialog */}
-      <Dialog open={showSnapshotModal} onClose={() => setShowSnapshotModal(false)} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ pb: 1 }}>Save Snapshot</DialogTitle>
+      <Dialog open={showSnapshotModal} onClose={closeSnapshotModal} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>
+          {snapshotStep === 'confirm-overwrite' ? 'Snapshot already exists for today' : 'Save Snapshot'}
+        </DialogTitle>
         <DialogContent>
-          <Grid container spacing={1} sx={{ mb: 2 }}>
-            {[['Liquid', liquid], ['Appreciating', appreciating], ['Depreciating', depreciating]].map(([l, v]) => (
-              <Grid key={String(l)} size={{ xs: 4 }}>
-                <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: '#0f172a', border: '1px solid #1f2937' }}>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>{l}</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>₹{fmtINR(Number(v))}</Typography>
-                </Paper>
+          {snapshotStep === 'confirm-overwrite' ? (
+            <Typography variant="body2" color="text.secondary">
+              A snapshot for today already exists. What would you like to do?
+            </Typography>
+          ) : (
+            <>
+              <Grid container spacing={1} sx={{ mb: 2 }}>
+                {[['Liquid', liquid], ['Appreciating', appreciating], ['Depreciating', depreciating]].map(([l, v]) => (
+                  <Grid key={String(l)} size={{ xs: 4 }}>
+                    <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: '#0f172a', border: '1px solid #1f2937' }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>{l}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>₹{fmtINR(Number(v))}</Typography>
+                    </Paper>
+                  </Grid>
+                ))}
               </Grid>
-            ))}
-          </Grid>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Total: <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>₹{fmtINR(netWorth)}</Box>
-          </Typography>
-          <TextField
-            label="Note (optional)"
-            size="small"
-            fullWidth
-            placeholder="e.g. Salary came, crypto went up..."
-            value={snapshotNote}
-            onChange={e => setSnapshotNote(e.target.value)}
-          />
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Total: <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>₹{fmtINR(netWorth)}</Box>
+              </Typography>
+              <TextField
+                label="Note (optional)"
+                size="small"
+                fullWidth
+                placeholder="e.g. Salary came, crypto went up..."
+                value={snapshotNote}
+                onChange={e => setSnapshotNote(e.target.value)}
+              />
+            </>
+          )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setShowSnapshotModal(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleSaveSnapshot} variant="contained" disabled={savingSnapshot}>
-            {savingSnapshot ? <CircularProgress size={16} color="inherit" /> : 'Save'}
-          </Button>
+          {snapshotStep === 'confirm-overwrite' ? (
+            <>
+              <Button onClick={closeSnapshotModal} color="inherit">Cancel</Button>
+              <Button onClick={() => doSave(false)} variant="outlined" disabled={savingSnapshot}>
+                Add new row
+              </Button>
+              <Button onClick={() => doSave(true)} variant="contained" disabled={savingSnapshot}>
+                {savingSnapshot ? <CircularProgress size={16} color="inherit" /> : 'Overwrite'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={closeSnapshotModal} color="inherit">Cancel</Button>
+              <Button onClick={handleSaveSnapshot} variant="contained" disabled={savingSnapshot}>
+                {savingSnapshot ? <CircularProgress size={16} color="inherit" /> : 'Save'}
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
     </Box>
