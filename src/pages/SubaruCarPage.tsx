@@ -8,7 +8,9 @@ import DeleteIcon from '@mui/icons-material/Delete'
 import { fetchSubaruCarConfig, saveSubaruCarConfig } from '../services/firebase'
 import type { SubaruCarConfig, SubaruExpenditure } from '../types'
 import { confirm } from '../components/ConfirmDialog'
-import { fmtINR } from '../lib/fmt'
+import { fmtCurrency } from '../lib/fmt'
+
+function fmtUSD(val: number) { return fmtCurrency(val, 'USD') }
 import { useIsReadOnly } from '../store/authStore'
 
 const DEFAULT_CONFIG: SubaruCarConfig = {
@@ -43,10 +45,10 @@ function EditableRow({ label, value, onCommit, isReadOnly }: {
           <Button size="small" variant="contained" onClick={commit} sx={{ minWidth: 0, px: 1.5 }}>OK</Button>
         </Box>
       ) : isReadOnly ? (
-        <Typography variant="body2">₹{fmtINR(value)}</Typography>
+        <Typography variant="body2">{fmtUSD(value)}</Typography>
       ) : (
         <Typography variant="body2" sx={{ cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }} onClick={start}>
-          ₹{fmtINR(value)}
+          {fmtUSD(value)}
         </Typography>
       )}
     </Box>
@@ -103,7 +105,7 @@ export default function SubaruCarPage() {
   async function removeExpenditure(idx: number) {
     if (!config) return
     const exp = config.expenditures[idx]
-    const ok = await confirm({ title: 'Remove expenditure', message: `Remove "${exp.label}" (₹${fmtINR(exp.amount)})?` })
+    const ok = await confirm({ title: 'Remove expenditure', message: `Remove "${exp.label}" (${fmtUSD(exp.amount)})?` })
     if (!ok) return
     await persist({ ...config, expenditures: config.expenditures.filter((_, i) => i !== idx) })
   }
@@ -136,12 +138,12 @@ export default function SubaruCarPage() {
             />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
               <Typography variant="body2" color="text.secondary">Total Expenditures</Typography>
-              <Typography variant="body2">₹{fmtINR(totalExp)}</Typography>
+              <Typography variant="body2">{fmtUSD(totalExp)}</Typography>
             </Box>
             <Divider sx={{ my: 1 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Net Value</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>₹{fmtINR(netValue)}</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>{fmtUSD(netValue)}</Typography>
             </Box>
           </Paper>
 
@@ -149,16 +151,16 @@ export default function SubaruCarPage() {
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Summary</Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" color="text.secondary">Estimated Selling Price</Typography>
-              <Typography variant="body2">₹{fmtINR(config.estimatedSellingPrice)}</Typography>
+              <Typography variant="body2">{fmtUSD(config.estimatedSellingPrice)}</Typography>
             </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
               <Typography variant="body2" color="text.secondary">Total Expenditures</Typography>
-              <Typography variant="body2">₹{fmtINR(totalExp)}</Typography>
+              <Typography variant="body2">{fmtUSD(totalExp)}</Typography>
             </Box>
             <Divider sx={{ mb: 1.5 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Net Proceeds</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>₹{fmtINR(netValue)}</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>{fmtUSD(netValue)}</Typography>
             </Box>
           </Paper>
         </Grid>
@@ -248,7 +250,7 @@ export default function SubaruCarPage() {
                           sx={{ cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}
                           onClick={() => !isReadOnly && (setEditIdx(idx), setEditLabel(exp.label), setEditAmount(String(exp.amount)))}
                         >
-                          ₹{fmtINR(exp.amount)}
+                          {fmtUSD(exp.amount)}
                         </Typography>
                         {!isReadOnly && (
                           <IconButton
@@ -275,7 +277,7 @@ export default function SubaruCarPage() {
             {config.expenditures.length > 0 && (
               <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.5, borderTop: '1px solid #374151', mt: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total</Typography>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>₹{fmtINR(totalExp)}</Typography>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{fmtUSD(totalExp)}</Typography>
               </Box>
             )}
           </Paper>
