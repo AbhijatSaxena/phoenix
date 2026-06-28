@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react'
 import {
   Box, Paper, Grid, Typography, Button, TextField, CircularProgress,
-  Divider, IconButton, Checkbox, Tooltip,
+  Divider, IconButton, Checkbox, Tooltip, Select, MenuItem, Chip,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
   fetchRegentConfig, saveRegentConfig,
   fetchRegentEmis, addRegentEmi, deleteRegentEmi, updateRegentEmi,
+  fetchPaymentModes,
 } from '../services/firebase'
-import type { RegentConfig, RegentEmi } from '../types'
+import type { RegentConfig, RegentEmi, RegentBulkPayment } from '../types'
 import { confirm } from '../components/ConfirmDialog'
 import { fmtINR, isoToDisplay } from '../lib/fmt'
 import { useIsReadOnly } from '../store/authStore'
@@ -26,22 +27,19 @@ const DEFAULT_CONFIG: RegentConfig = {
   principalOutstanding: 13719750,
   bulkPayments: [],
   tdsPayments: [],
+  loanDisbursements: [],
   includeRefund: false,
 }
 
 interface EmiForm { date: string; amount: number }
 
-function EditableRow({ label, value, onCommit, isReadOnly }: { label: string; value: number; onCommit: (v: number) => void; isReadOnly: boolean }) {
+function EditableRow({ label, value, onCommit, isReadOnly }: {
+  label: string; value: number; onCommit: (v: number) => void; isReadOnly: boolean
+}) {
   const [editing, setEditing] = useState(false)
   const [val, setVal] = useState('')
-
   function start() { setVal(String(value)); setEditing(true) }
-  function commit() {
-    const n = parseFloat(val)
-    if (!isNaN(n)) onCommit(n)
-    setEditing(false)
-  }
-
+  function commit() { const n = parseFloat(val); if (!isNaN(n)) onCommit(n); setEditing(false) }
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
       <Typography variant="body2" color="text.secondary">{label}</Typography>
@@ -63,27 +61,39 @@ function EditableRow({ label, value, onCommit, isReadOnly }: { label: string; va
   )
 }
 
+function ModeChip({ mode }: { mode: string }) {
+  return (
+    <Chip label={mode} size="small" variant="outlined"
+      sx={{ height: 18, fontSize: 10, borderColor: '#374151', color: 'text.disabled', px: 0.25, '& .MuiChip-label': { px: 0.75 } }} />
+  )
+}
+
 function PaymentList({
-  title, payments, isReadOnly,
+  title, payments, modes, isReadOnly,
   onAdd, onRemove, onEditCommit,
 }: {
   title: string
-  payments: { date: string; amount: number }[]
+  payments: RegentBulkPayment[]
+  modes: string[]
   isReadOnly: boolean
-  onAdd: (date: string, amount: number) => Promise<void>
+  onAdd: (date: string, amount: number, mode: string) => Promise<void>
   onRemove: (i: number) => Promise<void>
   onEditCommit: (i: number, amount: number) => Promise<void>
 }) {
   const [showAdd, setShowAdd] = useState(false)
   const [newDate, setNewDate] = useState('')
   const [newAmount, setNewAmount] = useState('')
+  const [newMode, setNewMode] = useState(modes[0] ?? '')
   const [editIdx, setEditIdx] = useState<number | null>(null)
   const [editVal, setEditVal] = useState('')
 
+  // keep newMode in sync if modes load after mount
+  useEffect(() => { if (!newMode && modes.length) setNewMode(modes[0]) }, [modes])
+
   async function handleAdd() {
     const amt = parseFloat(newAmount)
-    if (!newDate || isNaN(amt)) return
-    await onAdd(newDate, amt)
+    if (!newDate || isNaN(amt) || !newMode) return
+    await onAdd(newDate, amt, newMode)
     setNewDate(''); setNewAmount(''); setShowAdd(false)
   }
 
@@ -93,62 +103,61 @@ function PaymentList({
     setEditIdx(null)
   }
 
+  const sorted = [...payments].map((p, i) => ({ ...p, _orig: i })).sort((a, b) => b.date.localeCompare(a.date))
   const total = payments.reduce((s, p) => s + p.amount, 0)
-  const sorted = [...payments].sort((a, b) => b.date.localeCompare(a.date))
 
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
         <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{title}</Typography>
         {!isReadOnly && (
-          <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setShowAdd(v => !v)}>
-            Add
-          </Button>
+          <Button size="small" variant="outlined" startIcon={<AddIcon />} onClick={() => setShowAdd(v => !v)}>Add</Button>
         )}
       </Box>
 
       {showAdd && (
         <Box sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
           <TextField size="small" type="date" value={newDate} onChange={e => setNewDate(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }} sx={{ flex: 1, minWidth: 130 }} />
+            slotProps={{ inputLabel: { shrink: true } }} sx={{ minWidth: 130 }} />
           <TextField size="small" type="number" placeholder="Amount (₹)" value={newAmount}
             onChange={e => setNewAmount(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
-            sx={{ width: 130 }} />
+            sx={{ width: 120 }} />
+          <Select size="small" value={newMode} onChange={e => setNewMode(e.target.value)} sx={{ minWidth: 120 }}>
+            {modes.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+          </Select>
           <Button variant="contained" size="small" onClick={handleAdd}>Add</Button>
         </Box>
       )}
 
       <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
-        {sorted.map((p, i) => {
-          const origIdx = payments.indexOf(p)
-          return (
-            <Box key={i} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937', '&:hover .del-btn': { opacity: 1 } }}>
-              <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12 }}>{isoToDisplay(p.date)}</Typography>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                {!isReadOnly && editIdx === origIdx ? (
-                  <TextField size="small" type="number" value={editVal}
-                    onChange={e => setEditVal(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') handleCommit(origIdx); if (e.key === 'Escape') setEditIdx(null) }}
-                    onBlur={() => handleCommit(origIdx)}
-                    slotProps={{ htmlInput: { style: { width: 100 } } }} autoFocus />
-                ) : (
-                  <Typography variant="body2"
-                    onClick={() => !isReadOnly && (setEditIdx(origIdx), setEditVal(String(p.amount)))}
-                    sx={{ cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}>
-                    ₹{fmtINR(p.amount)}
-                  </Typography>
-                )}
-                {!isReadOnly && (
-                  <IconButton className="del-btn" size="small" onClick={() => onRemove(origIdx)}
-                    sx={{ opacity: 0, transition: 'opacity 0.15s', color: 'error.main', p: 0.25 }}>
-                    <DeleteIcon fontSize="small" />
-                  </IconButton>
-                )}
-              </Box>
+        {sorted.map(p => (
+          <Box key={p._orig} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid #1f2937', gap: 1, '&:hover .del-btn': { opacity: 1 } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontSize: 11, minWidth: 72 }}>{isoToDisplay(p.date)}</Typography>
+            <ModeChip mode={p.mode} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 'auto' }}>
+              {!isReadOnly && editIdx === p._orig ? (
+                <TextField size="small" type="number" value={editVal}
+                  onChange={e => setEditVal(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleCommit(p._orig); if (e.key === 'Escape') setEditIdx(null) }}
+                  onBlur={() => handleCommit(p._orig)}
+                  slotProps={{ htmlInput: { style: { width: 90 } } }} autoFocus />
+              ) : (
+                <Typography variant="body2"
+                  onClick={() => !isReadOnly && (setEditIdx(p._orig), setEditVal(String(p.amount)))}
+                  sx={{ cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}>
+                  ₹{fmtINR(p.amount)}
+                </Typography>
+              )}
+              {!isReadOnly && (
+                <IconButton className="del-btn" size="small" onClick={() => onRemove(p._orig)}
+                  sx={{ opacity: 0, transition: 'opacity 0.15s', color: 'error.main', p: 0.25 }}>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              )}
             </Box>
-          )
-        })}
+          </Box>
+        ))}
         {payments.length === 0 && <Typography variant="body2" color="text.disabled" sx={{ py: 1.5 }}>No entries yet.</Typography>}
       </Box>
 
@@ -165,6 +174,7 @@ function PaymentList({
 export default function RegentPage() {
   const [config, setConfig] = useState<RegentConfig | null>(null)
   const [emis, setEmis] = useState<RegentEmi[]>([])
+  const [modes, setModes] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddEmi, setShowAddEmi] = useState(false)
   const [emiLoading, setEmiLoading] = useState(false)
@@ -176,9 +186,12 @@ export default function RegentPage() {
 
   useEffect(() => {
     async function load() {
-      const [cfg, emirows] = await Promise.all([fetchRegentConfig(), fetchRegentEmis()])
+      const [cfg, emirows, payModes] = await Promise.all([
+        fetchRegentConfig(), fetchRegentEmis(), fetchPaymentModes(),
+      ])
       setConfig((cfg as RegentConfig) ?? DEFAULT_CONFIG)
       setEmis((emirows as RegentEmi[]).sort((a, b) => b.date.localeCompare(a.date)))
+      setModes(payModes)
       setLoading(false)
     }
     load()
@@ -194,8 +207,9 @@ export default function RegentPage() {
 
   const bulkSum         = config.bulkPayments.reduce((s, p) => s + p.amount, 0)
   const tdsSum          = config.tdsPayments.reduce((s, p) => s + p.amount, 0)
+  const loanSum         = config.loanDisbursements.reduce((s, p) => s + p.amount, 0)
   const emiSum          = emis.reduce((s, e) => s + e.amount, 0)
-  const totalFromPocket = bulkSum + tdsSum + emiSum
+  const totalFromPocket = bulkSum + tdsSum + emiSum   // loan disbursements excluded
   const profitLoss      = iGetToKeep - totalFromPocket
   const profitLossPct   = (profitLoss / totalFromPocket) * 100
 
@@ -205,9 +219,8 @@ export default function RegentPage() {
   }
 
   // ── Bulk payments ──
-  async function addBulk(date: string, amount: number) {
-    const bulkPayments = [...config!.bulkPayments, { date, amount }]
-    await persist({ ...config!, bulkPayments })
+  async function addBulk(date: string, amount: number, mode: string) {
+    await persist({ ...config!, bulkPayments: [...config!.bulkPayments, { date, amount, mode }] })
   }
   async function removeBulk(i: number) {
     const p = config!.bulkPayments[i]
@@ -216,14 +229,12 @@ export default function RegentPage() {
     await persist({ ...config!, bulkPayments: config!.bulkPayments.filter((_, idx) => idx !== i) })
   }
   async function editBulk(i: number, amount: number) {
-    const bulkPayments = config!.bulkPayments.map((p, idx) => idx === i ? { ...p, amount } : p)
-    await persist({ ...config!, bulkPayments })
+    await persist({ ...config!, bulkPayments: config!.bulkPayments.map((p, idx) => idx === i ? { ...p, amount } : p) })
   }
 
   // ── TDS payments ──
-  async function addTds(date: string, amount: number) {
-    const tdsPayments = [...config!.tdsPayments, { date, amount }]
-    await persist({ ...config!, tdsPayments })
+  async function addTds(date: string, amount: number, mode: string) {
+    await persist({ ...config!, tdsPayments: [...config!.tdsPayments, { date, amount, mode }] })
   }
   async function removeTds(i: number) {
     const p = config!.tdsPayments[i]
@@ -232,8 +243,21 @@ export default function RegentPage() {
     await persist({ ...config!, tdsPayments: config!.tdsPayments.filter((_, idx) => idx !== i) })
   }
   async function editTds(i: number, amount: number) {
-    const tdsPayments = config!.tdsPayments.map((p, idx) => idx === i ? { ...p, amount } : p)
-    await persist({ ...config!, tdsPayments })
+    await persist({ ...config!, tdsPayments: config!.tdsPayments.map((p, idx) => idx === i ? { ...p, amount } : p) })
+  }
+
+  // ── Loan disbursements ──
+  async function addLoan(date: string, amount: number, mode: string) {
+    await persist({ ...config!, loanDisbursements: [...config!.loanDisbursements, { date, amount, mode }] })
+  }
+  async function removeLoan(i: number) {
+    const p = config!.loanDisbursements[i]
+    const ok = await confirm({ title: 'Remove disbursement', message: `Remove ₹${fmtINR(p.amount)} on ${isoToDisplay(p.date)}?` })
+    if (!ok) return
+    await persist({ ...config!, loanDisbursements: config!.loanDisbursements.filter((_, idx) => idx !== i) })
+  }
+  async function editLoan(i: number, amount: number) {
+    await persist({ ...config!, loanDisbursements: config!.loanDisbursements.map((p, idx) => idx === i ? { ...p, amount } : p) })
   }
 
   // ── EMI ──
@@ -336,9 +360,13 @@ export default function RegentPage() {
               <Typography variant="body2" color="text.secondary">Total EMI Paid</Typography>
               <Typography variant="body2">₹{fmtINR(emiSum)}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.5, borderBottom: '1px solid #374151' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total From Pocket</Typography>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>₹{fmtINR(totalFromPocket)}</Typography>
+            </Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.25 }}>
+              <Typography variant="body2" color="text.disabled">Loan Disbursed (not from pocket)</Typography>
+              <Typography variant="body2" color="text.disabled">₹{fmtINR(loanSum)}</Typography>
             </Box>
           </Paper>
 
@@ -365,34 +393,26 @@ export default function RegentPage() {
         </Grid>
       </Grid>
 
-      {/* 3-column payment tracking */}
+      {/* 4-column payment tracking */}
       <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937', mt: 2.5 }}>
         <Grid container spacing={3} sx={{ alignItems: 'flex-start' }}>
-          {/* Bulk Payments */}
-          <Grid size={{ xs: 12, md: 4 }}>
-            <PaymentList
-              title="Bulk Payments"
-              payments={config.bulkPayments}
-              isReadOnly={isReadOnly}
-              onAdd={addBulk}
-              onRemove={removeBulk}
-              onEditCommit={editBulk}
-            />
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
+            <PaymentList title="Bulk Payments" payments={config.bulkPayments} modes={modes}
+              isReadOnly={isReadOnly} onAdd={addBulk} onRemove={removeBulk} onEditCommit={editBulk} />
           </Grid>
 
-          <Grid size={{ xs: 12, md: 4 }} sx={{ borderLeft: { md: '1px solid #1f2937' }, pl: { md: 3 } }}>
-            <PaymentList
-              title="TDS Payments"
-              payments={config.tdsPayments}
-              isReadOnly={isReadOnly}
-              onAdd={addTds}
-              onRemove={removeTds}
-              onEditCommit={editTds}
-            />
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { sm: '1px solid #1f2937' }, pl: { sm: 3 } }}>
+            <PaymentList title="TDS Payments" payments={config.tdsPayments} modes={modes}
+              isReadOnly={isReadOnly} onAdd={addTds} onRemove={removeTds} onEditCommit={editTds} />
+          </Grid>
+
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { lg: '1px solid #1f2937' }, pl: { lg: 3 } }}>
+            <PaymentList title="Loan Disbursements" payments={config.loanDisbursements} modes={modes}
+              isReadOnly={isReadOnly} onAdd={addLoan} onRemove={removeLoan} onEditCommit={editLoan} />
           </Grid>
 
           {/* EMI Schedule */}
-          <Grid size={{ xs: 12, md: 4 }} sx={{ borderLeft: { md: '1px solid #1f2937' }, pl: { md: 3 } }}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { sm: '1px solid #1f2937' }, pl: { sm: 3 } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Home Loan EMIs</Typography>
               {!isReadOnly && (
@@ -405,25 +425,23 @@ export default function RegentPage() {
 
             {showAddEmi && (
               <Box component="form" onSubmit={handleEmi(onAddEmi)} sx={{ display: 'flex', gap: 1, mb: 2, flexWrap: 'wrap' }}>
-                <TextField size="small" type="date" {...regEmi('date', { required: true })} sx={{ flex: 1, minWidth: 130 }} slotProps={{ inputLabel: { shrink: true } }} />
-                <TextField size="small" type="number" placeholder="Amount" {...regEmi('amount', { required: true, valueAsNumber: true })} sx={{ width: 130 }} />
-                <Button type="submit" variant="contained" size="small" disabled={emiLoading}>
-                  {emiLoading ? '…' : 'Add'}
-                </Button>
+                <TextField size="small" type="date" {...regEmi('date', { required: true })} sx={{ minWidth: 130 }} slotProps={{ inputLabel: { shrink: true } }} />
+                <TextField size="small" type="number" placeholder="Amount" {...regEmi('amount', { required: true, valueAsNumber: true })} sx={{ width: 120 }} />
+                <Button type="submit" variant="contained" size="small" disabled={emiLoading}>{emiLoading ? '…' : 'Add'}</Button>
               </Box>
             )}
 
             <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
               {emis.map(emi => (
-                <Box key={emi.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937', '&:hover .delete-emi': { opacity: 1 } }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: 12 }}>{isoToDisplay(emi.date)}</Typography>
+                <Box key={emi.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid #1f2937', '&:hover .delete-emi': { opacity: 1 } }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: 11 }}>{isoToDisplay(emi.date)}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {!isReadOnly && editEmiId === emi.id ? (
                       <TextField size="small" type="number" value={editEmiValue}
                         onChange={e => setEditEmiValue(e.target.value)}
                         onKeyDown={e => { if (e.key === 'Enter') commitEmiEdit(); if (e.key === 'Escape') setEditEmiId(null) }}
                         onBlur={commitEmiEdit}
-                        slotProps={{ htmlInput: { style: { width: 100 } } }} autoFocus />
+                        slotProps={{ htmlInput: { style: { width: 90 } } }} autoFocus />
                     ) : (
                       <Typography variant="body2"
                         onClick={() => !isReadOnly && (setEditEmiId(emi.id), setEditEmiValue(String(emi.amount)))}
