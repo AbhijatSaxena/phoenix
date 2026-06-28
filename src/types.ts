@@ -62,13 +62,13 @@ export interface RegentConfig {
   infraCharges: number
   clubHouseCharges: number
   principalOutstanding: number
-  payments: RegentPayment[]
-  totalTds: number
+  bulkPayments: RegentBulkPayment[]
+  tdsPayments: RegentBulkPayment[]
   includeRefund: boolean  // if true, apply -20% cancellation deduction to dashboard value
 }
 
-export interface RegentPayment {
-  label: string
+export interface RegentBulkPayment {
+  date: string
   amount: number
 }
 
