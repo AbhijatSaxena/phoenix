@@ -11,8 +11,8 @@ export interface Account {
   inr: number
   order: number
   updatedAt?: number  // epoch ms, set on every edit
-  /** For Apartment Networth — computed from Regent; for Zerodha — computed from Zerodha. Marks it as read-only in UI. */
-  derived?: 'regent' | 'zerodha'
+  /** Computed from Regent / Zerodha / SubaruCar pages. Marks it as read-only in UI. */
+  derived?: 'regent' | 'zerodha' | 'subaruCar'
 }
 
 export interface Rates {
@@ -75,6 +75,18 @@ export interface RegentEmi {
   id: string
   date: string   // ISO date string
   amount: number
+}
+
+// ─── Subaru Car ──────────────────────────────────────────────────────────────
+
+export interface SubaruExpenditure {
+  label: string
+  amount: number
+}
+
+export interface SubaruCarConfig {
+  estimatedSellingPrice: number
+  expenditures: SubaruExpenditure[]
 }
 
 // ─── Todos ───────────────────────────────────────────────────────────────────

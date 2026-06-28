@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Account } from '../types'
 import {
   fetchAccounts, saveAccount, deleteAccount,
-  fetchZerodhaConfig, fetchRegentConfig,
+  fetchZerodhaConfig, fetchRegentConfig, fetchSubaruCarConfig,
 } from '../services/firebase'
 
 interface DashboardState {
@@ -20,10 +20,11 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
   load: async () => {
     set({ loading: true })
-    const [rawAccounts, zerCfg, regCfg] = await Promise.all([
+    const [rawAccounts, zerCfg, regCfg, subaruCfg] = await Promise.all([
       fetchAccounts(),
       fetchZerodhaConfig(),
       fetchRegentConfig(),
+      fetchSubaruCarConfig(),
     ])
 
     // Zerodha: show capital invested only
@@ -39,10 +40,19 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       regentValue = totalCost * 1.05 * 0.80 - rc.principalOutstanding
     }
 
+    // Compute Subaru Car net value
+    const sc = subaruCfg as any
+    let subaruValue = 0
+    if (sc) {
+      const totalExp = (sc.expenditures ?? []).reduce((s: number, e: any) => s + (e.amount ?? 0), 0)
+      subaruValue = (sc.estimatedSellingPrice ?? 0) - totalExp
+    }
+
     // Patch derived accounts in-memory (no Firestore write)
     const accounts = (rawAccounts as Account[]).map(a => {
-      if (a.derived === 'zerodha') return { ...a, inr: zerodhaValue }
-      if (a.derived === 'regent') return { ...a, inr: regentValue }
+      if (a.derived === 'zerodha')   return { ...a, inr: zerodhaValue }
+      if (a.derived === 'regent')    return { ...a, inr: regentValue }
+      if (a.derived === 'subaruCar') return { ...a, inr: subaruValue }
       return a
     })
 
