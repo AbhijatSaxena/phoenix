@@ -64,12 +64,14 @@ export interface RegentConfig {
   principalOutstanding: number
   bulkPayments: RegentBulkPayment[]
   tdsPayments: RegentBulkPayment[]
+  loanDisbursements: RegentBulkPayment[]
   includeRefund: boolean  // if true, apply -20% cancellation deduction to dashboard value
 }
 
 export interface RegentBulkPayment {
   date: string
   amount: number
+  mode: string
 }
 
 export interface RegentEmi {

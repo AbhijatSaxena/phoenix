@@ -198,6 +198,15 @@ export async function saveExpenseRowOrder(currency: string, order: string[]) {
   await setDoc(doc(db, 'meta', `rowOrder-${currency}`), { order })
 }
 
+export async function fetchPaymentModes(): Promise<string[]> {
+  const snap = await getDoc(doc(db, 'meta', 'paymentModes'))
+  return snap.exists() ? (snap.data().modes ?? []) : []
+}
+
+export async function savePaymentModes(modes: string[]): Promise<void> {
+  await setDoc(doc(db, 'meta', 'paymentModes'), { modes })
+}
+
 // ─── Sessions ────────────────────────────────────────────────────────────────
 
 export interface Session {

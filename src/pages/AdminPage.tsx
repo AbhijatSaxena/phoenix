@@ -11,7 +11,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
-import { fetchAllSessions, revokeSession } from '../services/firebase'
+import { fetchAllSessions, revokeSession, fetchPaymentModes, savePaymentModes } from '../services/firebase'
 import type { Session } from '../services/firebase'
 import { useAuthStore } from '../store/authStore'
 import { useLinksStore } from '../store/linksStore'
@@ -49,12 +49,36 @@ export default function AdminPage() {
   const [editingLink, setEditingLink] = useState<QuickLink | null>(null)
   const [savingLink, setSavingLink] = useState(false)
 
+  const [payModes, setPayModes] = useState<string[]>([])
+  const [newMode, setNewMode] = useState('')
+  const [savingMode, setSavingMode] = useState(false)
+
   const loadSessions = useCallback(async () => {
     setLoading(true)
     try { setSessions(await fetchAllSessions()) } finally { setLoading(false) }
   }, [])
 
-  useEffect(() => { loadSessions(); loadLinks() }, [loadSessions])
+  useEffect(() => {
+    loadSessions(); loadLinks()
+    fetchPaymentModes().then(setPayModes)
+  }, [loadSessions])
+
+  async function handleAddMode() {
+    const m = newMode.trim()
+    if (!m || payModes.includes(m)) return
+    setSavingMode(true)
+    const updated = [...payModes, m]
+    await savePaymentModes(updated)
+    setPayModes(updated)
+    setNewMode('')
+    setSavingMode(false)
+  }
+
+  async function handleRemoveMode(m: string) {
+    const updated = payModes.filter(x => x !== m)
+    await savePaymentModes(updated)
+    setPayModes(updated)
+  }
 
   async function handleRevoke(session: Session) {
     if (session.id === currentSessionId) return
@@ -277,6 +301,45 @@ export default function AdminPage() {
           ))}
         </Paper>
       )}
+
+      {/* Payment Modes */}
+      <Divider sx={{ my: 3 }} />
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16, mb: 0.5 }}>Payment Modes</Typography>
+        <Typography variant="caption" color="text.secondary">Modes available in Regent payment dropdowns.</Typography>
+      </Box>
+
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <TextField
+          size="small"
+          placeholder="e.g. HDFC NRO"
+          value={newMode}
+          onChange={e => setNewMode(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAddMode()}
+          sx={{ flex: 1 }}
+        />
+        <Button variant="contained" size="small" onClick={handleAddMode}
+          disabled={savingMode || !newMode.trim() || payModes.includes(newMode.trim())}
+          startIcon={<AddIcon sx={{ fontSize: 14 }} />}>
+          Add
+        </Button>
+      </Box>
+
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+        {payModes.map(m => (
+          <Chip
+            key={m}
+            label={m}
+            size="small"
+            variant="outlined"
+            onDelete={() => handleRemoveMode(m)}
+            sx={{ borderColor: '#374151', color: 'text.secondary', '& .MuiChip-deleteIcon': { color: 'text.disabled', '&:hover': { color: 'error.main' } } }}
+          />
+        ))}
+        {payModes.length === 0 && (
+          <Typography variant="body2" color="text.disabled">No modes yet.</Typography>
+        )}
+      </Box>
     </Box>
   )
 }
