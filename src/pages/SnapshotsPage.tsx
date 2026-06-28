@@ -25,7 +25,7 @@ export default function SnapshotsPage() {
   const [saving, setSaving] = useState(false)
   const isReadOnly = useIsReadOnly()
 
-  type EditField = 'total' | 'difference' | 'notes'
+  type EditField = 'total' | 'notes'
   const [editCell, setEditCell] = useState<{ id: string; field: EditField } | null>(null)
   const [editValue, setEditValue] = useState('')
 
@@ -41,9 +41,6 @@ export default function SnapshotsPage() {
     if (editCell.field === 'total') {
       const newTotal = parseFloat(editValue)
       if (!isNaN(newTotal)) await updateSnapshot({ ...snap, total: newTotal })
-    } else if (editCell.field === 'difference') {
-      const newDiff = editValue === '' ? null : parseFloat(editValue)
-      if (editValue === '' || !isNaN(newDiff as number)) await updateSnapshot({ ...snap, difference: newDiff })
     } else {
       await updateSnapshot({ ...snap, notes: editValue })
     }
@@ -168,26 +165,12 @@ export default function SnapshotsPage() {
                 </TableCell>
 
                 <TableCell align="right">
-                  {!isReadOnly && editCell?.id === s.id && editCell.field === 'difference' ? (
-                    <TextField
-                      size="small"
-                      value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
-                      onBlur={commitCellEdit}
-                      onKeyDown={handleCellKey}
-                      autoFocus
-                      slotProps={{ htmlInput: { style: { textAlign: 'right', width: 100 } } }}
-                      sx={{ '& .MuiInputBase-root': { fontSize: 13 } }}
-                    />
-                  ) : (
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 500, cursor: isReadOnly ? 'default' : 'pointer', color: diffClass(s.difference) === 'positive' ? 'success.main' : diffClass(s.difference) === 'negative' ? 'error.main' : 'text.secondary', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}
-                      onClick={() => !isReadOnly && startCellEdit(s.id, 'difference', s.difference == null ? '' : String(s.difference))}
-                    >
-                      {fmtDiff(s.difference)}
-                    </Typography>
-                  )}
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: 500, color: diffClass(s.difference) === 'positive' ? 'success.main' : diffClass(s.difference) === 'negative' ? 'error.main' : 'text.secondary' }}
+                  >
+                    {fmtDiff(s.difference)}
+                  </Typography>
                 </TableCell>
 
                 <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, maxWidth: 200 }}>
