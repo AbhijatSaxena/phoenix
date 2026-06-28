@@ -1,41 +1,42 @@
 # Phoenix
 
-A personal finance and productivity management dashboard. Built as a private, self-hosted web app for tracking net worth, expenses, investments, and tasks — all in one place.
+A personal finance dashboard. Built as a private, self-hosted web app for tracking net worth, expenses, and investments — all in one place.
 
 ## Features
 
 ### Net Worth Dashboard
 - Track assets across categories: **liquid**, **appreciating**, and **depreciating**
 - Automatic multi-currency conversion (USD, CAD, INR) with live exchange rates
-- Derived accounts (e.g. property equity, stock portfolio) computed automatically
+- Derived accounts (property equity, stock portfolio, car value) computed automatically from their respective pages
 - Quick-link chip bar for frequently visited external resources
 
 ### Snapshots
 - Record daily net worth snapshots across all categories
 - Visualise trends over time with a line chart
 - Annotate each snapshot with free-form notes
+- Duplicate-date detection: prompted to overwrite or add a new row when saving a second snapshot on the same day
 
 ### Expenses
-- Monthly budget tracker per currency
+- Monthly budget tracker per currency (INR, USD, CAD)
 - Configurable line items with salary and spend tracking
 - Drag-and-drop row reordering
 
-### Property Tracker
-- Track property value using configurable rate parameters (base rate, floor premium, parking, etc.)
+### Property Tracker (Regent)
+- Track property value using configurable rate parameters (base rate, floor rise premium, parking, GST, etc.)
+- Optional "refunded if cancelled" toggle — applies a -20% cancellation deduction to the dashboard value
+- Dynamic payments list: add, edit, and delete payments by label and amount
 - Log EMI payments with full history
 - Computed equity feeds back into the net worth dashboard automatically
 
-### Stock Portfolio
-- Track realised and unrealised P&L across equity, F&O, commodities, and mutual funds
-- Historical entry log with date-series view
+### Car Tracker (Subaru)
+- Track estimated selling price in USD
+- Log expenditures (repairs, maintenance, etc.) with optional deduction toggle
+- Net value (with or without deductions) flows into the net worth dashboard via live exchange rate
 
-### Todos
-- Visual dependency graph showing which tasks are blocked and which are ready
-- Focus mode — mark a task as active; status and accumulated time sync across devices in real-time
-- Per-task time tracking across all sessions
-- AI-assisted task creation via an embedded chat that interviews you before creating tasks and linking dependencies
-- Per-task comments with author and timestamp
-- Archive and permanent delete
+### Stock Portfolio (Zerodha)
+- Track capital invested and realised/unrealised P&L across equity, F&O, commodities, and mutual funds
+- Historical entry log with date-series view
+- "Copy previous values" per field when adding a new entry; master checkbox to copy all at once
 
 ### Admin
 - Session management — view all active sessions, revoke any remotely
@@ -52,9 +53,7 @@ A personal finance and productivity management dashboard. Built as a private, se
 | Routing | React Router v6 |
 | Database | Firebase Firestore |
 | Auth | Firebase Authentication |
-| AI | Groq API (Llama 3.3 70B via OpenAI-compatible endpoint) |
 | Charts | Recharts |
-| Graph layout | @dagrejs/dagre |
 | Drag-and-drop | dnd-kit |
 | Hosting | Firebase Hosting |
 
@@ -64,7 +63,6 @@ A personal finance and productivity management dashboard. Built as a private, se
 
 - Node.js 18+
 - A Firebase project with **Authentication** and **Firestore** enabled
-- A Groq API key (for the AI todo assistant)
 
 ### Environment Variables
 
@@ -77,7 +75,6 @@ VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
-VITE_GROQ_API_KEY=
 ```
 
 ### Install and Run
@@ -112,9 +109,8 @@ src/
   pages/          # One file per route
   components/     # Shared UI components
   store/          # Zustand stores (one per domain)
-  services/       # Firebase CRUD, AI chat, exchange rates
-  hooks/          # useTodoFocus (cross-device focus state)
-  utils/          # todoUtils.ts — shared todo dependency logic
+  services/       # Firebase CRUD + exchange rates
+  hooks/          # useInactivityLogout
   types.ts        # All shared TypeScript types
   router.tsx      # Route definitions
   main.tsx        # App entry point + MUI dark theme config
@@ -132,31 +128,20 @@ src/
 | `/expenses` | Authenticated |
 | `/regent` | Authenticated |
 | `/zerodha` | Authenticated |
-| `/todos` | Authenticated |
+| `/subaru` | Authenticated |
 | `/admin` | Admin only |
 
-### Todo Dependency System
+### Derived Accounts
 
-`Todo.dependsOn` holds IDs of blocking todos. The utility at `src/utils/todoUtils.ts` is the single source of truth for "is this todo blocked":
-
-```ts
-getPendingBlockers(todo, allTodos)  // deps not yet done
-isTodoBlocked(todo, allTodos)       // boolean shorthand
-```
-
-Key invariant: a dependency absent from the array (because it was filtered out as done) is treated as done — not as blocking. Always import from `todoUtils`; never inline this logic.
-
-### Focus State Sync
-
-Focus state is stored per-user in Firestore (`focusState/{uid}`) so it propagates across devices in real-time via `onSnapshot`. The hook writes only on user actions (start / pause / resume / stop) — never on every tick — keeping Firestore usage well within the free tier.
+Three accounts in Firestore carry a `derived` field (`'regent'`, `'zerodha'`, `'subaruCar'`). Their values are never written directly — instead, `dashboardStore.load()` fetches the relevant config documents and patches the values in-memory before setting state. This keeps Firestore writes minimal and ensures the dashboard always reflects the latest config.
 
 ### Exchange Rates
 
-Fetched from a public currency API, cached in Firestore for 4 hours. Falls back to hardcoded defaults if the fetch fails.
+Fetched from a public currency API, cached in Firestore for 4 hours. Falls back to hardcoded defaults (`usdInr: 84`, `cadInr: 62`) if the fetch fails.
 
 ## Deployment
 
-Pushes to `main` trigger a GitHub Actions workflow that builds and deploys to Firebase Hosting automatically. The Groq API key is read from a GitHub secret; all other Firebase config comes from repository variables.
+Pushes to `main` trigger a GitHub Actions workflow that builds and deploys to Firebase Hosting automatically. Firebase config comes from repository variables.
 
 ## License
 
