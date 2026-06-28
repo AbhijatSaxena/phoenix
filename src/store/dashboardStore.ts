@@ -30,14 +30,17 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     // Zerodha: show capital invested only
     const zerodhaValue = (zerCfg as any)?.capital ?? 0
 
-    // Compute live Regent value: "I get to keep" = refunded - principalOutstanding
+    // Compute live Regent value
     const rc = regCfg as any
     let regentValue = 0
     if (rc) {
       const baseTotal = rc.sqft * rc.baseRate
       const totalCost = baseTotal + rc.floorRisePremium + rc.premiumLocation
                       + rc.carParking + rc.infraCharges + rc.clubHouseCharges
-      regentValue = totalCost * 1.05 * 0.80 - rc.principalOutstanding
+      const withGst   = totalCost * 1.05
+      // Apply -20% cancellation deduction only when the flag is on
+      const effectiveValue = rc.includeRefund ? withGst * 0.80 : withGst
+      regentValue = effectiveValue - rc.principalOutstanding
     }
 
     // Compute Subaru Car value — deduct expenditures only when the flag is on
