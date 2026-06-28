@@ -64,6 +64,7 @@ export interface RegentConfig {
   principalOutstanding: number
   payments: RegentPayment[]
   totalTds: number
+  includeRefund: boolean  // if true, apply -20% cancellation deduction to dashboard value
 }
 
 export interface RegentPayment {
