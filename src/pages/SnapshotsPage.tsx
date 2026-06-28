@@ -25,30 +25,24 @@ export default function SnapshotsPage() {
   const [saving, setSaving] = useState(false)
   const isReadOnly = useIsReadOnly()
 
-  type EditField = 'total' | 'notes'
-  const [editCell, setEditCell] = useState<{ id: string; field: EditField } | null>(null)
+  const [editCell, setEditCell] = useState<{ id: string } | null>(null)
   const [editValue, setEditValue] = useState('')
 
-  function startCellEdit(id: string, field: EditField, current: string) {
-    setEditCell({ id, field })
+  function startNotesEdit(id: string, current: string) {
+    setEditCell({ id })
     setEditValue(current)
   }
 
-  async function commitCellEdit() {
+  async function commitNotesEdit() {
     if (!editCell) return
     const snap = snapshots.find(s => s.id === editCell.id)
     if (!snap) { setEditCell(null); return }
-    if (editCell.field === 'total') {
-      const newTotal = parseFloat(editValue)
-      if (!isNaN(newTotal)) await updateSnapshot({ ...snap, total: newTotal })
-    } else {
-      await updateSnapshot({ ...snap, notes: editValue })
-    }
+    await updateSnapshot({ ...snap, notes: editValue })
     setEditCell(null)
   }
 
   function handleCellKey(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') commitCellEdit()
+    if (e.key === 'Enter') commitNotesEdit()
     if (e.key === 'Escape') setEditCell(null)
   }
 
@@ -142,26 +136,7 @@ export default function SnapshotsPage() {
                 <TableCell align="right" sx={{ color: 'text.secondary', display: { xs: 'none', sm: 'table-cell' } }}>₹{fmtINR(s.depreciating)}</TableCell>
 
                 <TableCell align="right">
-                  {!isReadOnly && editCell?.id === s.id && editCell.field === 'total' ? (
-                    <TextField
-                      size="small"
-                      value={editValue}
-                      onChange={e => setEditValue(e.target.value)}
-                      onBlur={commitCellEdit}
-                      onKeyDown={handleCellKey}
-                      autoFocus
-                      slotProps={{ htmlInput: { style: { textAlign: 'right', width: 100 } } }}
-                      sx={{ '& .MuiInputBase-root': { fontSize: 13 } }}
-                    />
-                  ) : (
-                    <Typography
-                      variant="body2"
-                      sx={{ fontWeight: 500, cursor: isReadOnly ? 'default' : 'pointer', '&:hover': isReadOnly ? {} : { textDecoration: 'underline' } }}
-                      onClick={() => !isReadOnly && startCellEdit(s.id, 'total', String(s.total))}
-                    >
-                      ₹{fmtINR(s.total)}
-                    </Typography>
-                  )}
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>₹{fmtINR(s.total)}</Typography>
                 </TableCell>
 
                 <TableCell align="right">
@@ -174,12 +149,12 @@ export default function SnapshotsPage() {
                 </TableCell>
 
                 <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, maxWidth: 200 }}>
-                  {!isReadOnly && editCell?.id === s.id && editCell.field === 'notes' ? (
+                  {!isReadOnly && editCell?.id === s.id ? (
                     <TextField
                       size="small"
                       value={editValue}
                       onChange={e => setEditValue(e.target.value)}
-                      onBlur={commitCellEdit}
+                      onBlur={commitNotesEdit}
                       onKeyDown={handleCellKey}
                       autoFocus
                       fullWidth
@@ -190,7 +165,7 @@ export default function SnapshotsPage() {
                       <Typography
                         variant="body2"
                         color="text.secondary"
-                        onClick={() => !isReadOnly && startCellEdit(s.id, 'notes', s.notes)}
+                        onClick={() => !isReadOnly && startNotesEdit(s.id, s.notes)}
                         sx={{ cursor: isReadOnly ? 'default' : 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', '&:hover': isReadOnly ? {} : { color: 'text.primary' } }}
                       >
                         {s.notes || '—'}
