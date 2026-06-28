@@ -52,7 +52,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
     const accounts = (rawAccounts as Account[]).map(a => {
       if (a.derived === 'zerodha')   return { ...a, inr: zerodhaValue }
       if (a.derived === 'regent')    return { ...a, inr: regentValue }
-      if (a.derived === 'subaruCar') return { ...a, inr: subaruValue }
+      if (a.derived === 'subaruCar') return { ...a, usd: subaruValue, inr: 0 }
       return a
     })
 
