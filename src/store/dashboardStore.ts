@@ -40,12 +40,12 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       regentValue = totalCost * 1.05 * 0.80 - rc.principalOutstanding
     }
 
-    // Compute Subaru Car net value
+    // Compute Subaru Car value — deduct expenditures only when the flag is on
     const sc = subaruCfg as any
     let subaruValue = 0
     if (sc) {
       const totalExp = (sc.expenditures ?? []).reduce((s: number, e: any) => s + (e.amount ?? 0), 0)
-      subaruValue = (sc.estimatedSellingPrice ?? 0) - totalExp
+      subaruValue = (sc.estimatedSellingPrice ?? 0) - (sc.includeExpenditures ? totalExp : 0)
     }
 
     // Patch derived accounts in-memory (no Firestore write)

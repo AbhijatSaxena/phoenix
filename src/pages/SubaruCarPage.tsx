@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Box, Paper, Grid, Typography, Button, TextField, CircularProgress,
-  Divider, IconButton,
+  Divider, IconButton, FormControlLabel, Checkbox,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -9,13 +9,14 @@ import { fetchSubaruCarConfig, saveSubaruCarConfig } from '../services/firebase'
 import type { SubaruCarConfig, SubaruExpenditure } from '../types'
 import { confirm } from '../components/ConfirmDialog'
 import { fmtCurrency } from '../lib/fmt'
+import { useIsReadOnly } from '../store/authStore'
 
 function fmtUSD(val: number) { return fmtCurrency(val, 'USD') }
-import { useIsReadOnly } from '../store/authStore'
 
 const DEFAULT_CONFIG: SubaruCarConfig = {
   estimatedSellingPrice: 0,
   expenditures: [],
+  includeExpenditures: false,
 }
 
 function EditableRow({ label, value, onCommit, isReadOnly }: {
@@ -83,8 +84,10 @@ export default function SubaruCarPage() {
   }
 
   const totalExp = config.expenditures.reduce((s, e) => s + e.amount, 0)
-  const netValue = config.estimatedSellingPrice - totalExp
-  const netColor = netValue >= 0 ? 'success.main' : 'error.main'
+  const dashboardValue = config.includeExpenditures
+    ? config.estimatedSellingPrice - totalExp
+    : config.estimatedSellingPrice
+  const netColor = dashboardValue >= 0 ? 'success.main' : 'error.main'
 
   async function persist(updated: SubaruCarConfig) {
     setConfig(updated)
@@ -137,14 +140,41 @@ export default function SubaruCarPage() {
               isReadOnly={isReadOnly}
             />
             <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
-              <Typography variant="body2" color="text.secondary">Total Expenditures</Typography>
-              <Typography variant="body2">{fmtUSD(totalExp)}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                Total Expenditures
+              </Typography>
+              <Typography variant="body2" color={config.includeExpenditures ? 'text.primary' : 'text.disabled'}>
+                {fmtUSD(totalExp)}
+              </Typography>
             </Box>
             <Divider sx={{ my: 1 }} />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Net Value</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>{fmtUSD(netValue)}</Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1 }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Dashboard Value</Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>{fmtUSD(dashboardValue)}</Typography>
             </Box>
+            {!isReadOnly && (
+              <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #1f2937' }}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      size="small"
+                      checked={config.includeExpenditures}
+                      onChange={e => persist({ ...config, includeExpenditures: e.target.checked })}
+                    />
+                  }
+                  label={
+                    <Typography variant="body2" color="text.secondary">
+                      Include expenditures in dashboard value
+                    </Typography>
+                  }
+                />
+              </Box>
+            )}
+            {isReadOnly && config.includeExpenditures && (
+              <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1 }}>
+                Expenditures are deducted from the dashboard value.
+              </Typography>
+            )}
           </Paper>
 
           <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
@@ -153,14 +183,18 @@ export default function SubaruCarPage() {
               <Typography variant="body2" color="text.secondary">Estimated Selling Price</Typography>
               <Typography variant="body2">{fmtUSD(config.estimatedSellingPrice)}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
-              <Typography variant="body2" color="text.secondary">Total Expenditures</Typography>
-              <Typography variant="body2">{fmtUSD(totalExp)}</Typography>
-            </Box>
-            <Divider sx={{ mb: 1.5 }} />
+            {config.includeExpenditures && (
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                <Typography variant="body2" color="text.secondary">− Expenditures</Typography>
+                <Typography variant="body2" color="error.main">− {fmtUSD(totalExp)}</Typography>
+              </Box>
+            )}
+            <Divider sx={{ my: 1 }} />
             <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Net Proceeds</Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>{fmtUSD(netValue)}</Typography>
+              <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                {config.includeExpenditures ? 'Net Proceeds' : 'Selling Price'}
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>{fmtUSD(dashboardValue)}</Typography>
             </Box>
           </Paper>
         </Grid>

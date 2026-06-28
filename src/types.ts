@@ -87,6 +87,7 @@ export interface SubaruExpenditure {
 export interface SubaruCarConfig {
   estimatedSellingPrice: number
   expenditures: SubaruExpenditure[]
+  includeExpenditures: boolean
 }
 
 // ─── Zerodha ─────────────────────────────────────────────────────────────────
