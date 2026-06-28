@@ -63,7 +63,7 @@ export default function SnapshotsPage() {
 
   async function handleSave() {
     setSaving(true)
-    await saveSnapshot(liquid, appreciating, depreciating, note)
+    await saveSnapshot(liquid, appreciating, depreciating, note, false)
     setSaving(false)
     setShowModal(false)
     setNote('')

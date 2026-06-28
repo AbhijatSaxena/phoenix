@@ -6,7 +6,8 @@ interface SnapshotState {
   snapshots: Snapshot[]
   loading: boolean
   load: () => Promise<void>
-  saveSnapshot: (liquid: number, appreciating: number, depreciating: number, notes: string) => Promise<void>
+  checkTodayExists: () => boolean
+  saveSnapshot: (liquid: number, appreciating: number, depreciating: number, notes: string, overwrite: boolean) => Promise<void>
   updateSnapshot: (snapshot: Snapshot) => Promise<void>
   removeSnapshot: (id: string) => Promise<void>
 }
@@ -25,7 +26,12 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
     set({ snapshots, loading: false })
   },
 
-  saveSnapshot: async (liquid, appreciating, depreciating, notes) => {
+  checkTodayExists: () => {
+    const today = todayIso()
+    return get().snapshots.some(s => s.date === today)
+  },
+
+  saveSnapshot: async (liquid, appreciating, depreciating, notes, overwrite) => {
     const today = todayIso()
     const total = liquid + appreciating + depreciating
 
@@ -35,17 +41,22 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
       existing = await fetchSnapshots() as Snapshot[]
       set({ snapshots: existing })
     }
-    const prevTotal = existing.length > 0
-      ? existing[existing.length - 1].total
-      : null
 
-    // Check if today already exists
     const existingToday = existing.find(s => s.date === today)
-    const id = existingToday?.id ?? today
 
-    const difference = existingToday
-      ? existingToday.difference   // keep original difference if updating today
-      : (prevTotal !== null ? total - prevTotal : null)
+    let id: string
+    let difference: number | null
+
+    if (existingToday && overwrite) {
+      // Overwrite: keep same document ID and preserve the original diff (vs previous day)
+      id = existingToday.id
+      difference = existingToday.difference
+    } else {
+      // New row: unique ID; diff vs the immediately preceding snapshot (may be today's earlier one)
+      id = existingToday ? `${today}-${Date.now().toString(36)}` : today
+      const prevEntry = existing.length > 0 ? existing[existing.length - 1] : null
+      difference = prevEntry ? total - prevEntry.total : null
+    }
 
     const snapshot: Snapshot = {
       id,
@@ -55,7 +66,7 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
       depreciating,
       total,
       difference,
-      notes: notes || (existingToday?.notes ?? ''),
+      notes,
     }
 
     await upsertSnapshot(snapshot as unknown as Record<string, unknown>)
