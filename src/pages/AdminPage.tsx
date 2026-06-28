@@ -13,6 +13,7 @@ import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
 import { fetchAllSessions, revokeSession, fetchPaymentModes, savePaymentModes } from '../services/firebase'
 import type { Session } from '../services/firebase'
+import { confirm } from '../components/ConfirmDialog'
 import { useAuthStore } from '../store/authStore'
 import { useLinksStore } from '../store/linksStore'
 import type { QuickLink } from '../types'
@@ -75,6 +76,8 @@ export default function AdminPage() {
   }
 
   async function handleRemoveMode(m: string) {
+    const ok = await confirm({ title: 'Remove payment mode', message: `Remove "${m}" from payment modes?` })
+    if (!ok) return
     const updated = payModes.filter(x => x !== m)
     await savePaymentModes(updated)
     setPayModes(updated)

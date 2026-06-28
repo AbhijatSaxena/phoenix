@@ -17,14 +17,14 @@ import { useIsReadOnly } from '../store/authStore'
 import { useForm } from 'react-hook-form'
 
 const DEFAULT_CONFIG: RegentConfig = {
-  sqft: 2191,
-  baseRate: 8999,
-  floorRisePremium: 482020,
-  premiumLocation: 1095500,
-  carParking: 700000,
-  infraCharges: 657300,
-  clubHouseCharges: 300000,
-  principalOutstanding: 13719750,
+  sqft: 0,
+  baseRate: 0,
+  floorRisePremium: 0,
+  premiumLocation: 0,
+  carParking: 0,
+  infraCharges: 0,
+  clubHouseCharges: 0,
+  principalOutstanding: 0,
   bulkPayments: [],
   tdsPayments: [],
   loanDisbursements: [],
@@ -69,13 +69,14 @@ function ModeChip({ mode }: { mode: string }) {
 }
 
 function PaymentList({
-  title, payments, modes, isReadOnly,
+  title, payments, modes, isReadOnly, noMode,
   onAdd, onRemove, onEditCommit,
 }: {
   title: string
   payments: RegentBulkPayment[]
   modes: string[]
   isReadOnly: boolean
+  noMode?: boolean
   onAdd: (date: string, amount: number, mode: string) => Promise<void>
   onRemove: (i: number) => Promise<void>
   onEditCommit: (i: number, amount: number) => Promise<void>
@@ -92,7 +93,7 @@ function PaymentList({
 
   async function handleAdd() {
     const amt = parseFloat(newAmount)
-    if (!newDate || isNaN(amt) || !newMode) return
+    if (!newDate || isNaN(amt)) return
     await onAdd(newDate, amt, newMode)
     setNewDate(''); setNewAmount(''); setShowAdd(false)
   }
@@ -123,9 +124,11 @@ function PaymentList({
             onChange={e => setNewAmount(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleAdd()}
             sx={{ width: 120 }} />
-          <Select size="small" value={newMode} onChange={e => setNewMode(e.target.value)} sx={{ minWidth: 120 }}>
-            {modes.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
-          </Select>
+          {!noMode && (
+            <Select size="small" value={newMode} onChange={e => setNewMode(e.target.value)} sx={{ minWidth: 120 }}>
+              {modes.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+            </Select>
+          )}
           <Button variant="contained" size="small" onClick={handleAdd}>Add</Button>
         </Box>
       )}
@@ -134,7 +137,7 @@ function PaymentList({
         {sorted.map(p => (
           <Box key={p._orig} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid #1f2937', gap: 1, '&:hover .del-btn': { opacity: 1 } }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: 11, minWidth: 72 }}>{isoToDisplay(p.date)}</Typography>
-            <ModeChip mode={p.mode} />
+            {!noMode && <ModeChip mode={p.mode} />}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 'auto' }}>
               {!isReadOnly && editIdx === p._orig ? (
                 <TextField size="small" type="number" value={editVal}
@@ -408,7 +411,7 @@ export default function RegentPage() {
 
           <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { lg: '1px solid #1f2937' }, pl: { lg: 3 } }}>
             <PaymentList title="Loan Disbursements" payments={config.loanDisbursements} modes={modes}
-              isReadOnly={isReadOnly} onAdd={addLoan} onRemove={removeLoan} onEditCommit={editLoan} />
+              isReadOnly={isReadOnly} noMode onAdd={addLoan} onRemove={removeLoan} onEditCommit={editLoan} />
           </Grid>
 
           {/* EMI Schedule */}
