@@ -34,6 +34,7 @@ export default function ZerodhaPage() {
   const [saving, setSaving] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [copyPrev, setCopyPrev] = useState<Partial<Record<keyof EntryForm, boolean>>>({})
+  const [copyAll, setCopyAll]   = useState(false)
 
   const { register, handleSubmit, reset, setValue } = useForm<EntryForm>()
   const isReadOnly = useIsReadOnly()
@@ -64,8 +65,26 @@ export default function ZerodhaPage() {
     setEditCapital(false)
   }
 
+  const ALL_NUMERIC: (keyof EntryForm)[] = [
+    'equityRealized', 'equityUnrealized',
+    'fnoRealized', 'fnoUnrealized',
+    'commoditiesRealized', 'commoditiesUnrealized',
+    'mfRealized', 'mfUnrealized',
+  ]
+
+  function handleCopyAll(checked: boolean) {
+    setCopyAll(checked)
+    const next: Partial<Record<keyof EntryForm, boolean>> = {}
+    ALL_NUMERIC.forEach(key => {
+      next[key] = checked
+      setValue(key, checked && latest ? latest[key as keyof ZerodhaEntry] as any : '' as any)
+    })
+    setCopyPrev(next)
+  }
+
   function handleCopyCheck(key: keyof EntryForm, checked: boolean) {
     setCopyPrev(prev => ({ ...prev, [key]: checked }))
+    setCopyAll(false)
     if (checked && latest) {
       setValue(key, latest[key as keyof ZerodhaEntry] as any)
     } else {
@@ -91,6 +110,7 @@ export default function ZerodhaPage() {
     setEntries(await fetchZerodhaEntries() as ZerodhaEntry[])
     reset()
     setCopyPrev({})
+    setCopyAll(false)
     setShowForm(false)
     setEditingId(null)
     setSaving(false)
@@ -170,46 +190,64 @@ export default function ZerodhaPage() {
       {!isReadOnly && (
         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
           <Button variant="outlined" size="small" startIcon={<AddIcon />}
-            onClick={() => { setShowForm(v => !v); setEditingId(null); reset({ date: new Date().toISOString().split('T')[0] }); setCopyPrev({}) }}>
+            onClick={() => { setShowForm(v => !v); setEditingId(null); reset({ date: new Date().toISOString().split('T')[0] }); setCopyPrev({}); setCopyAll(false) }}>
             {showForm ? 'Cancel' : 'Add Entry'}
           </Button>
         </Box>
       )}
 
-      <Dialog open={showForm} onClose={() => { setShowForm(false); setEditingId(null); reset(); setCopyPrev({}) }} maxWidth="sm" fullWidth>
+      <Dialog open={showForm} onClose={() => { setShowForm(false); setEditingId(null); reset(); setCopyPrev({}); setCopyAll(false) }} maxWidth="sm" fullWidth>
         <DialogTitle>{editingId ? 'Edit Entry' : 'New Entry'}</DialogTitle>
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogContent>
+            {!editingId && latest && (
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, pb: 1.5, borderBottom: '1px solid #1f2937' }}>
+                <Checkbox
+                  size="small"
+                  checked={copyAll}
+                  onChange={e => handleCopyAll(e.target.checked)}
+                  sx={{ p: 0.25, mr: 0.5 }}
+                />
+                <Typography variant="body2" color="text.secondary">Copy all previous values</Typography>
+              </Box>
+            )}
             <Grid container spacing={2}>
-              {fields.map(({ key, label }) => (
-                <Grid key={key} size={{ xs: 12, sm: 6 }}>
-                  <TextField
-                    label={label}
-                    type={key === 'date' ? 'date' : 'number'}
-                    slotProps={{ htmlInput: { step: 'any' }, inputLabel: { shrink: true } }}
-                    size="small"
-                    fullWidth
-                    {...register(key, { required: true })}
-                  />
-                  {key !== 'date' && !editingId && latest && (
-                    <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.25 }}>
-                      <Checkbox
-                        size="small"
-                        checked={!!copyPrev[key]}
-                        onChange={e => handleCopyCheck(key, e.target.checked)}
-                        sx={{ p: 0.25 }}
-                      />
-                      <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
-                        Copy prev: ₹{fmtINR(Number(latest[key as keyof ZerodhaEntry] ?? 0))}
-                      </Typography>
-                    </Box>
-                  )}
-                </Grid>
-              ))}
+              {fields.map(({ key, label }) => {
+                const isCopied = key !== 'date' && !!copyPrev[key]
+                return (
+                  <Grid key={key} size={{ xs: 12, sm: 6 }}>
+                    <TextField
+                      label={label}
+                      type={key === 'date' ? 'date' : 'number'}
+                      slotProps={{
+                        htmlInput: { step: 'any', readOnly: isCopied },
+                        inputLabel: { shrink: true },
+                      }}
+                      sx={{ '& .MuiInputBase-input': isCopied ? { color: 'text.disabled', cursor: 'default' } : {} }}
+                      size="small"
+                      fullWidth
+                      {...register(key, { required: true })}
+                    />
+                    {key !== 'date' && !editingId && latest && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.25 }}>
+                        <Checkbox
+                          size="small"
+                          checked={!!copyPrev[key]}
+                          onChange={e => handleCopyCheck(key, e.target.checked)}
+                          sx={{ p: 0.25 }}
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
+                          Copy prev: ₹{fmtINR(Number(latest[key as keyof ZerodhaEntry] ?? 0))}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Grid>
+                )
+              })}
             </Grid>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={() => { setShowForm(false); setEditingId(null); reset(); setCopyPrev({}) }} color="inherit">Cancel</Button>
+            <Button onClick={() => { setShowForm(false); setEditingId(null); reset(); setCopyPrev({}); setCopyAll(false) }} color="inherit">Cancel</Button>
             <Button type="submit" variant="contained" disabled={saving}>
               {saving ? <CircularProgress size={16} color="inherit" /> : 'Save'}
             </Button>
