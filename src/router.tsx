@@ -7,7 +7,6 @@ import SnapshotsPage from './pages/SnapshotsPage'
 import ExpensesPage from './pages/ExpensesPage'
 import RegentPage from './pages/RegentPage'
 import ZerodhaPage from './pages/ZerodhaPage'
-import TodosPage from './pages/TodosPage'
 import AdminPage from './pages/AdminPage'
 import SubaruCarPage from './pages/SubaruCarPage'
 
@@ -28,7 +27,6 @@ export const router = createBrowserRouter([
           { path: 'regent',    element: <RegentPage /> },
           { path: 'zerodha',   element: <ZerodhaPage /> },
           { path: 'subaru',    element: <SubaruCarPage /> },
-          { path: 'todos',     element: <TodosPage /> },
           { path: 'admin',     element: <AdminPage /> },
         ],
       },

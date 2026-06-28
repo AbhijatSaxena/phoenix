@@ -14,7 +14,6 @@ const navItems = [
   { to: '/regent',    label: 'Regent',     icon: '🏠', adminOnly: false },
   { to: '/zerodha',   label: 'Zerodha',    icon: '📊', adminOnly: false },
   { to: '/subaru',    label: 'Subaru Car', icon: '🚗', adminOnly: false },
-  { to: '/todos',     label: 'Todos',      icon: '✅', adminOnly: false },
   { to: '/admin',     label: 'Admin',      icon: '🔐', adminOnly: true  },
 ]
 
