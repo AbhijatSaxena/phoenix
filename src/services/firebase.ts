@@ -9,7 +9,6 @@ import {
   deleteDoc,
   addDoc,
   updateDoc,
-  increment,
   query,
   orderBy,
   onSnapshot,
@@ -199,53 +198,6 @@ export async function saveExpenseRowOrder(currency: string, order: string[]) {
   await setDoc(doc(db, 'meta', `rowOrder-${currency}`), { order })
 }
 
-// ─── Todos ───────────────────────────────────────────────────────────────────
-
-export async function fetchTodos() {
-  const snap = await getDocs(query(collection(db, 'todos'), orderBy('order')))
-  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((t: any) => !t.archived)
-}
-
-export async function fetchArchivedTodos() {
-  const snap = await getDocs(query(collection(db, 'todos'), orderBy('order')))
-  return snap.docs.map(d => ({ id: d.id, ...d.data() })).filter((t: any) => t.archived === true)
-}
-
-export async function saveTodo(todo: Record<string, unknown>) {
-  const { id, ...data } = todo
-  await setDoc(doc(db, 'todos', id as string), data)
-}
-
-export async function deleteTodo(id: string) {
-  await deleteDoc(doc(db, 'todos', id))
-}
-
-// ─── Todo Comments ────────────────────────────────────────────────────────────
-
-export async function fetchComments(todoId: string) {
-  const snap = await getDocs(
-    query(collection(db, 'todos', todoId, 'comments'), orderBy('createdAt'))
-  )
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
-}
-
-export async function addComment(todoId: string, comment: { text: string; authorName: string; createdAt: number }) {
-  const ref = await addDoc(collection(db, 'todos', todoId, 'comments'), comment)
-  return ref.id
-}
-
-export async function deleteComment(todoId: string, commentId: string) {
-  await deleteDoc(doc(db, 'todos', todoId, 'comments', commentId))
-}
-
-export async function bumpCommentCount(todoId: string, delta: 1 | -1) {
-  await updateDoc(doc(db, 'todos', todoId), { commentCount: increment(delta) })
-}
-
-export async function setCommentCount(todoId: string, count: number) {
-  await updateDoc(doc(db, 'todos', todoId), { commentCount: count })
-}
-
 // ─── Sessions ────────────────────────────────────────────────────────────────
 
 export interface Session {
@@ -292,29 +244,6 @@ export function watchSession(sessionId: string, onRevoked: () => void): () => vo
 }
 
 export { Timestamp }
-
-// ─── Focus State ─────────────────────────────────────────────────────────────
-
-export interface FocusStateDoc {
-  focusId: string | null
-  focusAt: number | null
-  focusAcc: number
-  focusPaused: boolean
-}
-
-export async function saveFocusState(uid: string, state: FocusStateDoc) {
-  await setDoc(doc(db, 'focusState', uid), state)
-}
-
-export async function clearFocusState(uid: string) {
-  await deleteDoc(doc(db, 'focusState', uid))
-}
-
-export function watchFocusState(uid: string, onChange: (state: FocusStateDoc | null) => void): () => void {
-  return onSnapshot(doc(db, 'focusState', uid), snap => {
-    onChange(snap.exists() ? (snap.data() as FocusStateDoc) : null)
-  })
-}
 
 // ─── Quick Links ─────────────────────────────────────────────────────────────
 
