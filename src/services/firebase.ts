@@ -177,6 +177,17 @@ export async function deleteZerodhaEntry(id: string) {
   await deleteDoc(doc(db, 'zerodhaEntries', id))
 }
 
+// ─── Subaru Car ──────────────────────────────────────────────────────────────
+
+export async function fetchSubaruCarConfig() {
+  const snap = await getDoc(doc(db, 'subaruCar', 'config'))
+  return snap.exists() ? snap.data() : null
+}
+
+export async function saveSubaruCarConfig(data: Record<string, unknown>) {
+  await setDoc(doc(db, 'subaruCar', 'config'), data)
+}
+
 // ─── Expense row order ───────────────────────────────────────────────────────
 
 export async function fetchExpenseRowOrder(currency: string): Promise<string[]> {
