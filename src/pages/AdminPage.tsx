@@ -315,7 +315,7 @@ export default function AdminPage() {
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
         <TextField
           size="small"
-          placeholder="e.g. HDFC NRO"
+          placeholder="e.g. Savings Account"
           value={newMode}
           onChange={e => setNewMode(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && handleAddMode()}
