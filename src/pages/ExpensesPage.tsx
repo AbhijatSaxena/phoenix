@@ -349,7 +349,7 @@ export default function ExpensesPage() {
   const sym = SYMBOL[activeCurrency]
 
   function fmt(n: number): React.ReactNode {
-    if (n === 0) return <span style={{ color: '#374151' }}>—</span>
+    if (n === 0) return <span style={{ color: 'var(--border-subtle)' }}>—</span>
     return <>{sym}{Math.abs(n).toLocaleString()}</>
   }
 
@@ -454,11 +454,11 @@ export default function ExpensesPage() {
                       {isEditing ? (
                         <CellInput inputRef={inputRef} value={editValue} onChange={setEditValue} onBlur={commitEdit} onKeyDown={handleKeyDown} />
                       ) : isReadOnly ? (
-                        val ? `${sym}${val.toLocaleString()}` : <span style={{ color: '#374151' }}>—</span>
+                        val ? `${sym}${val.toLocaleString()}` : <span style={{ color: 'var(--border-subtle)' }}>—</span>
                       ) : (
                         <Box component="button" onClick={() => startEdit('__salary__', ym, String(val))}
                           sx={{ background: 'none', border: 'none', cursor: 'pointer', color: '#34d399', fontSize: 13, textAlign: 'right', width: '100%', '&:hover': { textDecoration: 'underline' } }}>
-                          {val ? `${sym}${val.toLocaleString()}` : <span style={{ color: '#374151' }}>—</span>}
+                          {val ? `${sym}${val.toLocaleString()}` : <span style={{ color: 'var(--border-subtle)' }}>—</span>}
                         </Box>
                       )}
                     </TableCell>
@@ -528,7 +528,7 @@ export default function ExpensesPage() {
                   return (
                     <TableCell key={ym} align="right" sx={{ fontWeight: 600, color: s > 0 ? 'success.main' : s < 0 ? 'error.main' : 'text.disabled' }}>
                       {getMonth(ym).salary === 0 && s === 0
-                        ? <span style={{ color: '#374151' }}>—</span>
+                        ? <span style={{ color: 'var(--border-subtle)' }}>—</span>
                         : <>{s >= 0 ? '' : '-'}{sym}{Math.abs(s).toLocaleString()}</>
                       }
                     </TableCell>

@@ -93,7 +93,7 @@ export default function AccountsPage() {
           <Box
             component="button"
             onClick={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
-            sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, background: 'none', border: 'none', cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+            sx={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.5, background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', '&:hover': { bgcolor: 'action.hover' } }}
           >
             <Typography variant="subtitle2" sx={{ fontWeight: 600, color }}>{label}</Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
