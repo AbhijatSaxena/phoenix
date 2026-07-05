@@ -9,6 +9,7 @@ import RegentPage from './pages/RegentPage'
 import ZerodhaPage from './pages/ZerodhaPage'
 import AdminPage from './pages/AdminPage'
 import SubaruCarPage from './pages/SubaruCarPage'
+import AccountsPage from './pages/AccountsPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: <Navigate to="/dashboard" replace /> },
           { path: 'dashboard', element: <DashboardPage /> },
+          { path: 'accounts',  element: <AccountsPage /> },
           { path: 'snapshots', element: <SnapshotsPage /> },
           { path: 'expenses',  element: <ExpensesPage /> },
           { path: 'regent',    element: <RegentPage /> },

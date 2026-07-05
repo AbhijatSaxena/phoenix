@@ -1,6 +1,6 @@
 // ─── Dashboard ───────────────────────────────────────────────────────────────
 
-export type Category = 'liquid' | 'appreciating' | 'depreciating'
+export type Category = 'liquid' | 'appreciating' | 'investments' | 'depreciating'
 
 export interface Account {
   id: string
@@ -23,15 +23,25 @@ export interface Rates {
 
 // ─── Snapshots ───────────────────────────────────────────────────────────────
 
+export interface SnapshotAccount {
+  id: string
+  name: string
+  category: Category
+  inr: number  // INR value at time of snapshot
+}
+
 export interface Snapshot {
   id: string
   date: string         // ISO date string e.g. "2026-05-04"
+  version?: 1 | 2     // undefined or 1 = legacy V1; 2 = per-account detail stored
   liquid: number
   appreciating: number
+  investments?: number // V2 only
   depreciating: number
   total: number
   difference: number | null
   notes: string
+  accounts?: SnapshotAccount[]  // V2 only — per-account INR values at snapshot time
 }
 
 // ─── Expenses ────────────────────────────────────────────────────────────────

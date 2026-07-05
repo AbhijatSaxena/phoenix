@@ -9,6 +9,7 @@ import { useAuthStore } from '../store/authStore'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '◈',  adminOnly: false },
+  { to: '/accounts',  label: 'Accounts',  icon: '💼', adminOnly: false },
   { to: '/snapshots', label: 'Snapshots',  icon: '📈', adminOnly: false },
   { to: '/expenses',  label: 'Expenses',   icon: '💸', adminOnly: false },
   { to: '/regent',    label: 'Regent',     icon: '🏠', adminOnly: false },
