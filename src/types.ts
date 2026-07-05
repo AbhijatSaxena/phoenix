@@ -12,7 +12,7 @@ export interface Account {
   order: number
   updatedAt?: number  // epoch ms, set on every edit
   /** Computed from Property / Zerodha / Car pages. Marks it as read-only in UI. */
-  derived?: 'property' | 'zerodha' | 'car'
+  derived?: 'regent' | 'zerodha' | 'subaruCar'
 }
 
 export interface Rates {

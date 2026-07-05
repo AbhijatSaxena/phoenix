@@ -122,29 +122,29 @@ export async function deleteMonthExpenses(id: string) {
 // ─── Property ────────────────────────────────────────────────────────────────
 
 export async function fetchPropertyConfig() {
-  const snap = await getDoc(doc(db, 'property', 'config'))
+  const snap = await getDoc(doc(db, 'regent', 'config'))
   return snap.exists() ? snap.data() : null
 }
 
 export async function savePropertyConfig(data: Record<string, unknown>) {
-  await setDoc(doc(db, 'property', 'config'), data)
+  await setDoc(doc(db, 'regent', 'config'), data)
 }
 
 export async function fetchPropertyEmis() {
-  const snap = await getDocs(query(collection(db, 'propertyEmis'), orderBy('date')))
+  const snap = await getDocs(query(collection(db, 'regentEmis'), orderBy('date')))
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
 export async function addPropertyEmi(data: { date: string; amount: number }) {
-  return addDoc(collection(db, 'propertyEmis'), data)
+  return addDoc(collection(db, 'regentEmis'), data)
 }
 
 export async function deletePropertyEmi(id: string) {
-  await deleteDoc(doc(db, 'propertyEmis', id))
+  await deleteDoc(doc(db, 'regentEmis', id))
 }
 
 export async function updatePropertyEmi(id: string, data: { date: string; amount: number }) {
-  await setDoc(doc(db, 'propertyEmis', id), data)
+  await setDoc(doc(db, 'regentEmis', id), data)
 }
 
 // ─── Zerodha ─────────────────────────────────────────────────────────────────
@@ -179,12 +179,12 @@ export async function deleteZerodhaEntry(id: string) {
 // ─── Car ─────────────────────────────────────────────────────────────────────
 
 export async function fetchCarConfig() {
-  const snap = await getDoc(doc(db, 'car', 'config'))
+  const snap = await getDoc(doc(db, 'subaruCar', 'config'))
   return snap.exists() ? snap.data() : null
 }
 
 export async function saveCarConfig(data: Record<string, unknown>) {
-  await setDoc(doc(db, 'car', 'config'), data)
+  await setDoc(doc(db, 'subaruCar', 'config'), data)
 }
 
 // ─── Expense row order ───────────────────────────────────────────────────────

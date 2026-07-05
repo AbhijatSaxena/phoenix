@@ -53,9 +53,9 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
     // Patch derived accounts in-memory (no Firestore write)
     const accounts = (rawAccounts as Account[]).map(a => {
-      if (a.derived === 'zerodha')  return { ...a, inr: zerodhaValue }
-      if (a.derived === 'property') return { ...a, inr: propertyValue }
-      if (a.derived === 'car')      return { ...a, usd: carValue, inr: 0 }
+      if (a.derived === 'zerodha')    return { ...a, inr: zerodhaValue }
+      if (a.derived === 'regent')     return { ...a, inr: propertyValue }
+      if (a.derived === 'subaruCar')  return { ...a, usd: carValue, inr: 0 }
       return a
     })
 
