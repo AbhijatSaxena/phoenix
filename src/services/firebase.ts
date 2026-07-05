@@ -60,7 +60,7 @@ export async function deleteAccount(id: string) {
 
 // ─── Rates ───────────────────────────────────────────────────────────────────
 
-export async function updateDerivedAccount(derived: 'zerodha' | 'regent', inr: number) {
+export async function updateDerivedAccount(derived: 'zerodha' | 'property', inr: number) {
   const snap = await getDocs(collection(db, 'accounts'))
   const match = snap.docs.find(d => d.data().derived === derived)
   if (match) {
@@ -119,32 +119,32 @@ export async function deleteMonthExpenses(id: string) {
   await deleteDoc(doc(db, 'expenses', id))
 }
 
-// ─── Regent ──────────────────────────────────────────────────────────────────
+// ─── Property ────────────────────────────────────────────────────────────────
 
-export async function fetchRegentConfig() {
-  const snap = await getDoc(doc(db, 'regent', 'config'))
+export async function fetchPropertyConfig() {
+  const snap = await getDoc(doc(db, 'property', 'config'))
   return snap.exists() ? snap.data() : null
 }
 
-export async function saveRegentConfig(data: Record<string, unknown>) {
-  await setDoc(doc(db, 'regent', 'config'), data)
+export async function savePropertyConfig(data: Record<string, unknown>) {
+  await setDoc(doc(db, 'property', 'config'), data)
 }
 
-export async function fetchRegentEmis() {
-  const snap = await getDocs(query(collection(db, 'regentEmis'), orderBy('date')))
+export async function fetchPropertyEmis() {
+  const snap = await getDocs(query(collection(db, 'propertyEmis'), orderBy('date')))
   return snap.docs.map(d => ({ id: d.id, ...d.data() }))
 }
 
-export async function addRegentEmi(data: { date: string; amount: number }) {
-  return addDoc(collection(db, 'regentEmis'), data)
+export async function addPropertyEmi(data: { date: string; amount: number }) {
+  return addDoc(collection(db, 'propertyEmis'), data)
 }
 
-export async function deleteRegentEmi(id: string) {
-  await deleteDoc(doc(db, 'regentEmis', id))
+export async function deletePropertyEmi(id: string) {
+  await deleteDoc(doc(db, 'propertyEmis', id))
 }
 
-export async function updateRegentEmi(id: string, data: { date: string; amount: number }) {
-  await setDoc(doc(db, 'regentEmis', id), data)
+export async function updatePropertyEmi(id: string, data: { date: string; amount: number }) {
+  await setDoc(doc(db, 'propertyEmis', id), data)
 }
 
 // ─── Zerodha ─────────────────────────────────────────────────────────────────
@@ -176,15 +176,15 @@ export async function deleteZerodhaEntry(id: string) {
   await deleteDoc(doc(db, 'zerodhaEntries', id))
 }
 
-// ─── Subaru Car ──────────────────────────────────────────────────────────────
+// ─── Car ─────────────────────────────────────────────────────────────────────
 
-export async function fetchSubaruCarConfig() {
-  const snap = await getDoc(doc(db, 'subaruCar', 'config'))
+export async function fetchCarConfig() {
+  const snap = await getDoc(doc(db, 'car', 'config'))
   return snap.exists() ? snap.data() : null
 }
 
-export async function saveSubaruCarConfig(data: Record<string, unknown>) {
-  await setDoc(doc(db, 'subaruCar', 'config'), data)
+export async function saveCarConfig(data: Record<string, unknown>) {
+  await setDoc(doc(db, 'car', 'config'), data)
 }
 
 // ─── Expense row order ───────────────────────────────────────────────────────

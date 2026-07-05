@@ -15,9 +15,9 @@ const navItems = [
   { to: '/accounts',  label: 'Accounts',  icon: '💼', adminOnly: false },
   { to: '/snapshots', label: 'Snapshots',  icon: '📈', adminOnly: false },
   { to: '/expenses',  label: 'Expenses',   icon: '💸', adminOnly: false },
-  { to: '/regent',    label: 'Regent',     icon: '🏠', adminOnly: false },
+  { to: '/property',  label: 'Property',   icon: '🏠', adminOnly: false },
   { to: '/zerodha',   label: 'Zerodha',    icon: '📊', adminOnly: false },
-  { to: '/subaru',    label: 'Subaru Car', icon: '🚗', adminOnly: false },
+  { to: '/car',       label: 'Car',        icon: '🚗', adminOnly: false },
   { to: '/admin',     label: 'Admin',      icon: '🔐', adminOnly: true  },
 ]
 

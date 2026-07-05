@@ -6,17 +6,17 @@ import {
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
 import {
-  fetchRegentConfig, saveRegentConfig,
-  fetchRegentEmis, addRegentEmi, deleteRegentEmi, updateRegentEmi,
+  fetchPropertyConfig, savePropertyConfig,
+  fetchPropertyEmis, addPropertyEmi, deletePropertyEmi, updatePropertyEmi,
   fetchPaymentModes,
 } from '../services/firebase'
-import type { RegentConfig, RegentEmi, RegentBulkPayment } from '../types'
+import type { PropertyConfig, PropertyEmi, PropertyBulkPayment } from '../types'
 import { confirm } from '../components/ConfirmDialog'
 import { fmtINR, isoToDisplay } from '../lib/fmt'
 import { useIsReadOnly } from '../store/authStore'
 import { useForm } from 'react-hook-form'
 
-const DEFAULT_CONFIG: RegentConfig = {
+const DEFAULT_CONFIG: PropertyConfig = {
   sqft: 0,
   baseRate: 0,
   floorRisePremium: 0,
@@ -73,7 +73,7 @@ function PaymentList({
   onAdd, onRemove, onEditCommit,
 }: {
   title: string
-  payments: RegentBulkPayment[]
+  payments: PropertyBulkPayment[]
   modes: string[]
   isReadOnly: boolean
   noMode?: boolean
@@ -174,9 +174,9 @@ function PaymentList({
   )
 }
 
-export default function RegentPage() {
-  const [config, setConfig] = useState<RegentConfig | null>(null)
-  const [emis, setEmis] = useState<RegentEmi[]>([])
+export default function PropertyPage() {
+  const [config, setConfig] = useState<PropertyConfig | null>(null)
+  const [emis, setEmis] = useState<PropertyEmi[]>([])
   const [modes, setModes] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddEmi, setShowAddEmi] = useState(false)
@@ -190,10 +190,10 @@ export default function RegentPage() {
   useEffect(() => {
     async function load() {
       const [cfg, emirows, payModes] = await Promise.all([
-        fetchRegentConfig(), fetchRegentEmis(), fetchPaymentModes(),
+        fetchPropertyConfig(), fetchPropertyEmis(), fetchPaymentModes(),
       ])
-      setConfig((cfg as RegentConfig) ?? DEFAULT_CONFIG)
-      setEmis((emirows as RegentEmi[]).sort((a, b) => b.date.localeCompare(a.date)))
+      setConfig((cfg as PropertyConfig) ?? DEFAULT_CONFIG)
+      setEmis((emirows as PropertyEmi[]).sort((a, b) => b.date.localeCompare(a.date)))
       setModes(payModes)
       setLoading(false)
     }
@@ -216,9 +216,9 @@ export default function RegentPage() {
   const profitLoss      = iGetToKeep - totalFromPocket
   const profitLossPct   = (profitLoss / totalFromPocket) * 100
 
-  async function persist(updated: RegentConfig) {
+  async function persist(updated: PropertyConfig) {
     setConfig(updated)
-    await saveRegentConfig(updated as unknown as Record<string, unknown>)
+    await savePropertyConfig(updated as unknown as Record<string, unknown>)
   }
 
   // ── Bulk payments ──
@@ -266,7 +266,7 @@ export default function RegentPage() {
   // ── EMI ──
   async function onAddEmi(data: EmiForm) {
     setEmiLoading(true)
-    const ref = await addRegentEmi({ date: data.date, amount: Number(data.amount) })
+    const ref = await addPropertyEmi({ date: data.date, amount: Number(data.amount) })
     setEmis(prev => [...prev, { id: ref.id, date: data.date, amount: Number(data.amount) }].sort((a, b) => b.date.localeCompare(a.date)))
     resetEmi()
     setShowAddEmi(false)
@@ -277,7 +277,7 @@ export default function RegentPage() {
     const val = parseFloat(editEmiValue)
     if (!isNaN(val)) {
       const emi = emis.find(e => e.id === editEmiId)!
-      await updateRegentEmi(editEmiId, { date: emi.date, amount: val })
+      await updatePropertyEmi(editEmiId, { date: emi.date, amount: val })
       setEmis(prev => prev.map(e => e.id === editEmiId ? { ...e, amount: val } : e))
     }
     setEditEmiId(null)
@@ -286,7 +286,7 @@ export default function RegentPage() {
     const emi = emis.find(e => e.id === id)
     const ok = await confirm({ title: 'Remove EMI entry', message: `Remove EMI of ₹${emi?.amount.toLocaleString()} on ${emi?.date}?` })
     if (!ok) return
-    await deleteRegentEmi(id)
+    await deletePropertyEmi(id)
     setEmis(prev => prev.filter(e => e.id !== id))
   }
 
@@ -295,7 +295,7 @@ export default function RegentPage() {
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Regent Property</Typography>
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Property</Typography>
 
       <Grid container spacing={2.5}>
         {/* Cost Breakdown */}

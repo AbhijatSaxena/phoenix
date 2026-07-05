@@ -5,10 +5,10 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import SnapshotsPage from './pages/SnapshotsPage'
 import ExpensesPage from './pages/ExpensesPage'
-import RegentPage from './pages/RegentPage'
+import PropertyPage from './pages/PropertyPage'
 import ZerodhaPage from './pages/ZerodhaPage'
 import AdminPage from './pages/AdminPage'
-import SubaruCarPage from './pages/SubaruCarPage'
+import CarPage from './pages/CarPage'
 import AccountsPage from './pages/AccountsPage'
 
 export const router = createBrowserRouter([
@@ -26,9 +26,9 @@ export const router = createBrowserRouter([
           { path: 'accounts',  element: <AccountsPage /> },
           { path: 'snapshots', element: <SnapshotsPage /> },
           { path: 'expenses',  element: <ExpensesPage /> },
-          { path: 'regent',    element: <RegentPage /> },
+          { path: 'property',  element: <PropertyPage /> },
           { path: 'zerodha',   element: <ZerodhaPage /> },
-          { path: 'subaru',    element: <SubaruCarPage /> },
+          { path: 'car',       element: <CarPage /> },
           { path: 'admin',     element: <AdminPage /> },
         ],
       },

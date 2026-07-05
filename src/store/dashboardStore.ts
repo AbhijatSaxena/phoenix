@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { Account } from '../types'
 import {
   fetchAccounts, saveAccount, deleteAccount,
-  fetchZerodhaConfig, fetchRegentConfig, fetchSubaruCarConfig,
+  fetchZerodhaConfig, fetchPropertyConfig, fetchCarConfig,
 } from '../services/firebase'
 
 interface DashboardState {
@@ -20,19 +20,19 @@ export const useDashboardStore = create<DashboardState>((set) => ({
 
   load: async () => {
     set({ loading: true })
-    const [rawAccounts, zerCfg, regCfg, subaruCfg] = await Promise.all([
+    const [rawAccounts, zerCfg, propCfg, carCfg] = await Promise.all([
       fetchAccounts(),
       fetchZerodhaConfig(),
-      fetchRegentConfig(),
-      fetchSubaruCarConfig(),
+      fetchPropertyConfig(),
+      fetchCarConfig(),
     ])
 
     // Zerodha: show capital invested only
     const zerodhaValue = (zerCfg as any)?.capital ?? 0
 
-    // Compute live Regent value
-    const rc = regCfg as any
-    let regentValue = 0
+    // Compute live Property value
+    const rc = propCfg as any
+    let propertyValue = 0
     if (rc) {
       const baseTotal = rc.sqft * rc.baseRate
       const totalCost = baseTotal + rc.floorRisePremium + rc.premiumLocation
@@ -40,22 +40,22 @@ export const useDashboardStore = create<DashboardState>((set) => ({
       const withGst   = totalCost * 1.05
       // Apply -20% cancellation deduction only when the flag is on
       const effectiveValue = rc.includeRefund ? withGst * 0.80 : withGst
-      regentValue = effectiveValue - rc.principalOutstanding
+      propertyValue = effectiveValue - rc.principalOutstanding
     }
 
-    // Compute Subaru Car value — deduct expenditures only when the flag is on
-    const sc = subaruCfg as any
-    let subaruValue = 0
+    // Compute Car value — deduct expenditures only when the flag is on
+    const sc = carCfg as any
+    let carValue = 0
     if (sc) {
       const totalExp = (sc.expenditures ?? []).reduce((s: number, e: any) => s + (e.amount ?? 0), 0)
-      subaruValue = (sc.estimatedSellingPrice ?? 0) - (sc.includeExpenditures ? totalExp : 0)
+      carValue = (sc.estimatedSellingPrice ?? 0) - (sc.includeExpenditures ? totalExp : 0)
     }
 
     // Patch derived accounts in-memory (no Firestore write)
     const accounts = (rawAccounts as Account[]).map(a => {
-      if (a.derived === 'zerodha')   return { ...a, inr: zerodhaValue }
-      if (a.derived === 'regent')    return { ...a, inr: regentValue }
-      if (a.derived === 'subaruCar') return { ...a, usd: subaruValue, inr: 0 }
+      if (a.derived === 'zerodha')  return { ...a, inr: zerodhaValue }
+      if (a.derived === 'property') return { ...a, inr: propertyValue }
+      if (a.derived === 'car')      return { ...a, usd: carValue, inr: 0 }
       return a
     })
 

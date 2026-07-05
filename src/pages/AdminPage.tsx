@@ -309,7 +309,7 @@ export default function AdminPage() {
       <Divider sx={{ my: 3 }} />
       <Box sx={{ mb: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16, mb: 0.5 }}>Payment Modes</Typography>
-        <Typography variant="caption" color="text.secondary">Modes available in Regent payment dropdowns.</Typography>
+        <Typography variant="caption" color="text.secondary">Modes available in Property payment dropdowns.</Typography>
       </Box>
 
       <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>

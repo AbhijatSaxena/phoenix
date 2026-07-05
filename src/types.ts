@@ -11,8 +11,8 @@ export interface Account {
   inr: number
   order: number
   updatedAt?: number  // epoch ms, set on every edit
-  /** Computed from Regent / Zerodha / SubaruCar pages. Marks it as read-only in UI. */
-  derived?: 'regent' | 'zerodha' | 'subaruCar'
+  /** Computed from Property / Zerodha / Car pages. Marks it as read-only in UI. */
+  derived?: 'property' | 'zerodha' | 'car'
 }
 
 export interface Rates {
@@ -61,9 +61,9 @@ export interface MonthExpenses {
   items: ExpenseItem[]
 }
 
-// ─── Regent ──────────────────────────────────────────────────────────────────
+// ─── Property ────────────────────────────────────────────────────────────────
 
-export interface RegentConfig {
+export interface PropertyConfig {
   sqft: number
   baseRate: number
   floorRisePremium: number
@@ -72,34 +72,34 @@ export interface RegentConfig {
   infraCharges: number
   clubHouseCharges: number
   principalOutstanding: number
-  bulkPayments: RegentBulkPayment[]
-  tdsPayments: RegentBulkPayment[]
-  loanDisbursements: RegentBulkPayment[]
+  bulkPayments: PropertyBulkPayment[]
+  tdsPayments: PropertyBulkPayment[]
+  loanDisbursements: PropertyBulkPayment[]
   includeRefund: boolean  // if true, apply -20% cancellation deduction to dashboard value
 }
 
-export interface RegentBulkPayment {
+export interface PropertyBulkPayment {
   date: string
   amount: number
   mode: string
 }
 
-export interface RegentEmi {
+export interface PropertyEmi {
   id: string
   date: string   // ISO date string
   amount: number
 }
 
-// ─── Subaru Car ──────────────────────────────────────────────────────────────
+// ─── Car ─────────────────────────────────────────────────────────────────────
 
-export interface SubaruExpenditure {
+export interface CarExpenditure {
   label: string
   amount: number
 }
 
-export interface SubaruCarConfig {
+export interface CarConfig {
   estimatedSellingPrice: number
-  expenditures: SubaruExpenditure[]
+  expenditures: CarExpenditure[]
   includeExpenditures: boolean
 }
 

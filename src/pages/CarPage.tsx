@@ -5,15 +5,15 @@ import {
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
-import { fetchSubaruCarConfig, saveSubaruCarConfig } from '../services/firebase'
-import type { SubaruCarConfig, SubaruExpenditure } from '../types'
+import { fetchCarConfig, saveCarConfig } from '../services/firebase'
+import type { CarConfig, CarExpenditure } from '../types'
 import { confirm } from '../components/ConfirmDialog'
 import { fmtCurrency } from '../lib/fmt'
 import { useIsReadOnly } from '../store/authStore'
 
 function fmtUSD(val: number) { return fmtCurrency(val, 'USD') }
 
-const DEFAULT_CONFIG: SubaruCarConfig = {
+const DEFAULT_CONFIG: CarConfig = {
   estimatedSellingPrice: 0,
   expenditures: [],
   includeExpenditures: false,
@@ -56,8 +56,8 @@ function EditableRow({ label, value, onCommit, isReadOnly }: {
   )
 }
 
-export default function SubaruCarPage() {
-  const [config, setConfig] = useState<SubaruCarConfig | null>(null)
+export default function CarPage() {
+  const [config, setConfig] = useState<CarConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [showAddExp, setShowAddExp] = useState(false)
   const [newLabel, setNewLabel] = useState('')
@@ -69,8 +69,8 @@ export default function SubaruCarPage() {
   const isReadOnly = useIsReadOnly()
 
   useEffect(() => {
-    fetchSubaruCarConfig().then(cfg => {
-      setConfig((cfg as SubaruCarConfig) ?? DEFAULT_CONFIG)
+    fetchCarConfig().then(cfg => {
+      setConfig((cfg as CarConfig) ?? DEFAULT_CONFIG)
       setLoading(false)
     })
   }, [])
@@ -89,16 +89,16 @@ export default function SubaruCarPage() {
     : config.estimatedSellingPrice
   const netColor = dashboardValue >= 0 ? 'success.main' : 'error.main'
 
-  async function persist(updated: SubaruCarConfig) {
+  async function persist(updated: CarConfig) {
     setConfig(updated)
-    await saveSubaruCarConfig(updated as unknown as Record<string, unknown>)
+    await saveCarConfig(updated as unknown as Record<string, unknown>)
   }
 
   async function addExpenditure() {
     if (!config) return
     const amt = parseFloat(newAmount)
     if (!newLabel.trim() || isNaN(amt)) return
-    const exp: SubaruExpenditure = { label: newLabel.trim(), amount: amt }
+    const exp: CarExpenditure = { label: newLabel.trim(), amount: amt }
     await persist({ ...config, expenditures: [...config.expenditures, exp] })
     setNewLabel('')
     setNewAmount('')
@@ -126,7 +126,7 @@ export default function SubaruCarPage() {
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Subaru Car</Typography>
+      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Car</Typography>
 
       <Grid container spacing={2.5}>
         {/* Left: selling price + summary */}

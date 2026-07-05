@@ -21,14 +21,14 @@ A personal finance dashboard. Built as a private, self-hosted web app for tracki
 - Configurable line items with salary and spend tracking
 - Drag-and-drop row reordering
 
-### Property Tracker (Regent)
+### Property Tracker
 - Track property value using configurable rate parameters (base rate, floor rise premium, parking, GST, etc.)
 - Optional "refunded if cancelled" toggle — applies a -20% cancellation deduction to the dashboard value
 - Dynamic payments list: add, edit, and delete payments by label and amount
 - Log EMI payments with full history
 - Computed equity feeds back into the net worth dashboard automatically
 
-### Car Tracker (Subaru)
+### Car Tracker
 - Track estimated selling price in USD
 - Log expenditures (repairs, maintenance, etc.) with optional deduction toggle
 - Net value (with or without deductions) flows into the net worth dashboard via live exchange rate
@@ -126,14 +126,14 @@ src/
 | `/dashboard` | Authenticated |
 | `/snapshots` | Authenticated |
 | `/expenses` | Authenticated |
-| `/regent` | Authenticated |
+| `/property` | Authenticated |
 | `/zerodha` | Authenticated |
-| `/subaru` | Authenticated |
+| `/car` | Authenticated |
 | `/admin` | Admin only |
 
 ### Derived Accounts
 
-Three accounts in Firestore carry a `derived` field (`'regent'`, `'zerodha'`, `'subaruCar'`). Their values are never written directly — instead, `dashboardStore.load()` fetches the relevant config documents and patches the values in-memory before setting state. This keeps Firestore writes minimal and ensures the dashboard always reflects the latest config.
+Three accounts in Firestore carry a `derived` field (`'property'`, `'zerodha'`, `'car'`). Their values are never written directly — instead, `dashboardStore.load()` fetches the relevant config documents and patches the values in-memory before setting state. This keeps Firestore writes minimal and ensures the dashboard always reflects the latest config.
 
 ### Exchange Rates
 
