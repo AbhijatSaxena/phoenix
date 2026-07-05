@@ -5,13 +5,13 @@ import {
 } from '@mui/material'
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
 import {
-  PieChart, Pie, Cell, Tooltip as RechartsTooltip, ResponsiveContainer, Legend,
+  LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer,
 } from 'recharts'
 import { useDashboardStore, computeNetInr } from '../store/dashboardStore'
 import { useRatesStore } from '../store/ratesStore'
 import { useSnapshotStore } from '../store/snapshotStore'
 import type { Category, SnapshotAccount } from '../types'
-import { fmtINR } from '../lib/fmt'
+import { fmtINR, isoToDisplay } from '../lib/fmt'
 import { useIsReadOnly } from '../store/authStore'
 import { useLinksStore } from '../store/linksStore'
 
@@ -25,7 +25,7 @@ const CATEGORY_META: { key: Category; label: string; color: string }[] = [
 export default function DashboardPage() {
   const { accounts, loading, load } = useDashboardStore()
   const rates = useRatesStore(s => s.rates)
-  const { saveSnapshot, checkTodayExists, load: loadSnapshots } = useSnapshotStore()
+  const { snapshots, load: loadSnapshots, saveSnapshot, checkTodayExists } = useSnapshotStore()
   const { links, load: loadLinks } = useLinksStore()
   const isReadOnly = useIsReadOnly()
 
@@ -34,7 +34,7 @@ export default function DashboardPage() {
   const [savingSnapshot, setSavingSnapshot] = useState(false)
   const [snapshotStep, setSnapshotStep] = useState<'compose' | 'confirm-overwrite'>('compose')
 
-  useEffect(() => { load(); loadLinks() }, [])
+  useEffect(() => { load(); loadLinks(); loadSnapshots() }, [])
 
   const usdInr = rates?.usdInr ?? 84
   const cadInr = rates?.cadInr ?? 62
@@ -81,9 +81,23 @@ export default function DashboardPage() {
     setSnapshotNote('')
   }
 
-  const pieData = CATEGORY_META
-    .map(c => ({ name: c.label, value: sectionTotal(c.key), color: c.color }))
-    .filter(d => d.value > 0)
+  const chartData = snapshots.slice(-40).map(s => ({
+    date: s.date.slice(5),
+    total: Math.round(s.total / 1_00_000),
+    fullDate: s.date,
+  }))
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null
+    const snap = snapshots.find(s => s.date.slice(5) === label)
+    return (
+      <Paper elevation={3} sx={{ p: 1.5 }}>
+        <Typography variant="caption" color="text.secondary">{snap ? isoToDisplay(snap.date) : label}</Typography>
+        <Typography variant="body2" sx={{ fontWeight: 600 }}>₹{payload[0].value}L</Typography>
+        {snap?.notes && <Typography variant="caption" color="text.secondary" sx={{ display: 'block', maxWidth: 180 }}>{snap.notes}</Typography>}
+      </Paper>
+    )
+  }
 
   if (loading) return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 256 }}>
@@ -106,11 +120,12 @@ export default function DashboardPage() {
               sx={{
                 display: 'flex', alignItems: 'center', gap: 0.75,
                 px: 1.5, py: 0.75, borderRadius: '8px',
-                border: '1px solid #1f2937', bgcolor: '#0f172a',
+                border: '1px solid var(--border-main)',
+                bgcolor: 'var(--surface-card)',
                 color: 'text.secondary', textDecoration: 'none',
                 fontSize: 12, fontWeight: 500,
                 transition: 'border-color 0.15s, color 0.15s, background 0.15s',
-                '&:hover': { borderColor: '#2563eb', color: 'text.primary', bgcolor: '#111827' },
+                '&:hover': { borderColor: 'primary.main', color: 'text.primary', bgcolor: 'background.paper' },
               }}
             >
               <span style={{ fontSize: 15, lineHeight: 1 }}>{link.emoji}</span>
@@ -124,7 +139,7 @@ export default function DashboardPage() {
       <Grid container spacing={1.5} sx={{ mb: 3 }}>
         {CATEGORY_META.map(({ key, label, color }) => (
           <Grid key={key} size={{ xs: 6 }}>
-            <Paper elevation={0} sx={{ p: 2, textAlign: 'center', border: '1px solid #1f2937' }}>
+            <Paper elevation={0} sx={{ p: 2, textAlign: 'center', border: '1px solid var(--border-main)' }}>
               <Typography variant="overline" sx={{ fontSize: 10, color: 'text.secondary', display: 'block' }}>{label}</Typography>
               <Typography variant="subtitle1" sx={{ fontWeight: 600, color }}>
                 ₹{fmtINR(sectionTotal(key))}
@@ -133,9 +148,9 @@ export default function DashboardPage() {
           </Grid>
         ))}
         <Grid size={{ xs: 12 }}>
-          <Paper elevation={0} sx={{ p: 2, textAlign: 'center', border: '1px solid #1f2937' }}>
+          <Paper elevation={0} sx={{ p: 2, textAlign: 'center', border: '1px solid var(--border-main)' }}>
             <Typography variant="overline" sx={{ fontSize: 10, color: 'text.secondary', display: 'block' }}>Net Worth</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#f3f4f6' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: 'text.primary' }}>
               ₹{fmtINR(netWorth)}
             </Typography>
           </Paper>
@@ -151,36 +166,20 @@ export default function DashboardPage() {
         </Box>
       )}
 
-      {/* Pie chart */}
-      {pieData.length > 0 && (
-        <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
-          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1 }}>Portfolio Breakdown</Typography>
-          <ResponsiveContainer width="100%" height={240}>
-            <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={65}
-                outerRadius={95}
-                dataKey="value"
-                paddingAngle={2}
-              >
-                {pieData.map((entry, i) => (
-                  <Cell key={i} fill={entry.color} />
-                ))}
-              </Pie>
-              <RechartsTooltip
-                formatter={(value: number, name: string) => [`₹${fmtINR(value)}`, name]}
-                contentStyle={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 8, fontSize: 12 }}
-                labelStyle={{ color: '#9ca3af' }}
-              />
-              <Legend
-                formatter={(value) => (
-                  <span style={{ color: '#9ca3af', fontSize: 12 }}>{value}</span>
-                )}
-              />
-            </PieChart>
+      {/* Net Worth trend chart */}
+      {chartData.length > 1 && (
+        <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)' }}>
+          <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>Net Worth over time (₹ Lakhs)</Typography>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="date" tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}L`} />
+              <RechartsTooltip content={<CustomTooltip />} />
+              <Line type="monotone" dataKey="total" stroke="#2563eb" strokeWidth={2}
+                dot={{ r: 3, fill: '#2563eb', strokeWidth: 0 }}
+                activeDot={{ r: 5, fill: '#60a5fa' }} />
+            </LineChart>
           </ResponsiveContainer>
         </Paper>
       )}
@@ -200,7 +199,7 @@ export default function DashboardPage() {
               <Grid container spacing={1} sx={{ mb: 2 }}>
                 {CATEGORY_META.map(({ key, label, color }) => (
                   <Grid key={key} size={{ xs: 6 }}>
-                    <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: '#0f172a', border: '1px solid #1f2937' }}>
+                    <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'var(--surface-card)', border: '1px solid var(--border-main)' }}>
                       <Typography variant="caption" sx={{ display: 'block', fontSize: 10, color }}>{label}</Typography>
                       <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>₹{fmtINR(sectionTotal(key))}</Typography>
                     </Paper>

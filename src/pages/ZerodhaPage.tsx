@@ -151,7 +151,7 @@ export default function ZerodhaPage() {
 
       <Grid container spacing={1.5} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)' }}>
             <Typography variant="overline" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>Capital Invested</Typography>
             {!isReadOnly && editCapital ? (
               <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
@@ -170,7 +170,7 @@ export default function ZerodhaPage() {
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)' }}>
             <Typography variant="overline" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>Latest Net P&L</Typography>
             <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5, color: pnlColor(latestNet) }}>
               {latestNet !== null ? `₹${fmtINR(latestNet)}` : '—'}
@@ -178,7 +178,7 @@ export default function ZerodhaPage() {
           </Paper>
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)' }}>
             <Typography variant="overline" color="text.secondary" sx={{ display: 'block', fontSize: 10 }}>P/L %</Typography>
             <Typography variant="h6" sx={{ fontWeight: 600, mt: 0.5, color: pnlColor(plPct) }}>
               {plPct !== null ? `${plPct.toFixed(2)}%` : '—'}
@@ -201,7 +201,7 @@ export default function ZerodhaPage() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <DialogContent>
             {!editingId && latest && (
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, pb: 1.5, borderBottom: '1px solid #1f2937' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, pb: 1.5, borderBottom: '1px solid var(--border-main)' }}>
                 <Checkbox
                   size="small"
                   checked={copyAll}
@@ -255,10 +255,10 @@ export default function ZerodhaPage() {
         </form>
       </Dialog>
 
-      <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #1f2937' }}>
+      <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid var(--border-main)' }}>
         <Table size="small">
           <TableHead>
-            <TableRow sx={{ bgcolor: '#0f172a' }}>
+            <TableRow sx={{ bgcolor: 'var(--surface-card)' }}>
               <TableCell>Date</TableCell>
               <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Equity R</TableCell>
               <TableCell align="right" sx={{ display: { xs: 'none', md: 'table-cell' } }}>Equity U</TableCell>

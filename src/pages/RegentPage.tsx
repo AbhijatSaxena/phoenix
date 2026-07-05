@@ -41,7 +41,7 @@ function EditableRow({ label, value, onCommit, isReadOnly }: {
   function start() { setVal(String(value)); setEditing(true) }
   function commit() { const n = parseFloat(val); if (!isNaN(n)) onCommit(n); setEditing(false) }
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid var(--border-main)' }}>
       <Typography variant="body2" color="text.secondary">{label}</Typography>
       {editing ? (
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -64,7 +64,7 @@ function EditableRow({ label, value, onCommit, isReadOnly }: {
 function ModeChip({ mode }: { mode: string }) {
   return (
     <Chip label={mode} size="small" variant="outlined"
-      sx={{ height: 18, fontSize: 10, borderColor: '#374151', color: 'text.disabled', px: 0.25, '& .MuiChip-label': { px: 0.75 } }} />
+      sx={{ height: 18, fontSize: 10, borderColor: 'var(--border-subtle)', color: 'text.disabled', px: 0.25, '& .MuiChip-label': { px: 0.75 } }} />
   )
 }
 
@@ -135,7 +135,7 @@ function PaymentList({
 
       <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
         {sorted.map(p => (
-          <Box key={p._orig} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid #1f2937', gap: 1, '&:hover .del-btn': { opacity: 1 } }}>
+          <Box key={p._orig} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid var(--border-main)', gap: 1, '&:hover .del-btn': { opacity: 1 } }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontSize: 11, minWidth: 72 }}>{isoToDisplay(p.date)}</Typography>
             {!noMode && <ModeChip mode={p.mode} />}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 'auto' }}>
@@ -165,7 +165,7 @@ function PaymentList({
       </Box>
 
       {payments.length > 0 && (
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.25, borderTop: '1px solid #374151', mt: 0.5 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.25, borderTop: '1px solid var(--border-subtle)', mt: 0.5 }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total</Typography>
           <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>₹{fmtINR(total)}</Typography>
         </Box>
@@ -300,11 +300,11 @@ export default function RegentPage() {
       <Grid container spacing={2.5}>
         {/* Cost Breakdown */}
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Cost Breakdown</Typography>
             <EditableRow label="Area (sqft)" value={config.sqft} onCommit={v => persist({ ...config, sqft: v })} isReadOnly={isReadOnly} />
             <EditableRow label="Base Rate (₹/sqft)" value={config.baseRate} onCommit={v => persist({ ...config, baseRate: v })} isReadOnly={isReadOnly} />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid var(--border-main)' }}>
               <Typography variant="body2" color="text.secondary">Base Price</Typography>
               <Typography variant="body2">₹{fmtINR(baseTotal)}</Typography>
             </Box>
@@ -322,7 +322,7 @@ export default function RegentPage() {
               <Typography variant="body2" color="text.secondary">Saleable Value (+5% GST)</Typography>
               <Typography variant="body2">₹{fmtINR(withGst)}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid #1f2937' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid var(--border-main)' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 {!isReadOnly && (
                   <Tooltip title={config.includeRefund ? 'Applied to dashboard value' : 'Not applied to dashboard value'} placement="top">
@@ -349,17 +349,17 @@ export default function RegentPage() {
 
         {/* Payment Summary + P&L */}
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937', mb: 2.5 }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)', mb: 2.5 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Payment Summary</Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid var(--border-main)' }}>
               <Typography variant="body2" color="text.secondary">Total Bulk Paid</Typography>
               <Typography variant="body2">₹{fmtINR(bulkSum)}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid var(--border-main)' }}>
               <Typography variant="body2" color="text.secondary">Total TDS Paid</Typography>
               <Typography variant="body2">₹{fmtINR(tdsSum)}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid var(--border-main)' }}>
               <Typography variant="body2" color="text.secondary">Total EMI Paid</Typography>
               <Typography variant="body2">₹{fmtINR(emiSum)}</Typography>
             </Box>
@@ -373,7 +373,7 @@ export default function RegentPage() {
             </Box>
           </Paper>
 
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Profit / Loss</Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" color="text.secondary">I get to keep</Typography>
@@ -397,7 +397,7 @@ export default function RegentPage() {
       </Grid>
 
       {/* 4-column payment tracking */}
-      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937', mt: 2.5 }}>
+      <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)', mt: 2.5 }}>
         <Grid container spacing={3} sx={{ alignItems: 'flex-start' }}>
           <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
             <PaymentList title="Bulk Payments" payments={config.bulkPayments} modes={modes}
@@ -436,7 +436,7 @@ export default function RegentPage() {
 
             <Box sx={{ maxHeight: 260, overflowY: 'auto' }}>
               {emis.map(emi => (
-                <Box key={emi.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid #1f2937', '&:hover .delete-emi': { opacity: 1 } }}>
+                <Box key={emi.id} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid var(--border-main)', '&:hover .delete-emi': { opacity: 1 } }}>
                   <Typography variant="body2" color="text.secondary" sx={{ fontSize: 11 }}>{isoToDisplay(emi.date)}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     {!isReadOnly && editEmiId === emi.id ? (
@@ -465,7 +465,7 @@ export default function RegentPage() {
             </Box>
 
             {emis.length > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.25, borderTop: '1px solid #374151', mt: 0.5 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.25, borderTop: '1px solid var(--border-subtle)', mt: 0.5 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total</Typography>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>₹{fmtINR(emiSum)}</Typography>
               </Box>

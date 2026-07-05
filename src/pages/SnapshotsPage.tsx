@@ -169,13 +169,13 @@ export default function SnapshotsPage() {
 
       {/* Chart — spans all snapshots */}
       {chartData.length > 1 && (
-        <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid #1f2937' }}>
+        <Paper elevation={0} sx={{ p: 2.5, mb: 3, border: '1px solid var(--border-main)' }}>
           <Typography variant="overline" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>Net Worth over time (₹ Lakhs)</Typography>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" />
-              <XAxis dataKey="date" tick={{ fill: '#6b7280', fontSize: 10 }} tickLine={false} />
-              <YAxis tick={{ fill: '#6b7280', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}L`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--chart-grid)" />
+              <XAxis dataKey="date" tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--chart-axis)', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}L`} />
               <RechartsTooltip content={<CustomTooltip />} />
               <Line type="monotone" dataKey="total" stroke="#2563eb" strokeWidth={2}
                 dot={{ r: 3, fill: '#2563eb', strokeWidth: 0 }}
@@ -187,10 +187,10 @@ export default function SnapshotsPage() {
 
       {/* ── V2 Snapshots ── */}
       {v2Snapshots.length > 0 && (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #1f2937', mb: 3 }}>
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid var(--border-main)', mb: 3 }}>
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ bgcolor: '#0f172a' }}>
+              <TableRow sx={{ bgcolor: 'var(--surface-card)' }}>
                 <TableCell>Date</TableCell>
                 <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' }, color: '#38bdf8' }}>Liquid</TableCell>
                 <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' }, color: '#34d399' }}>Appreciating</TableCell>
@@ -236,7 +236,7 @@ export default function SnapshotsPage() {
                   {/* Per-account breakdown */}
                   {s.accounts && s.accounts.length > 0 && (
                     <TableRow>
-                      <TableCell colSpan={10} sx={{ py: 0, border: 0, bgcolor: '#0a0f1a' }}>
+                      <TableCell colSpan={10} sx={{ py: 0, border: 0, bgcolor: 'var(--surface-deep)' }}>
                         <Collapse in={expandedRow === s.id} unmountOnExit>
                           <Box sx={{ py: 2, px: 2 }}>
                             <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mb: 1.5, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>
@@ -245,7 +245,7 @@ export default function SnapshotsPage() {
                             <Grid container spacing={1}>
                               {s.accounts.map(acc => (
                                 <Grid key={acc.id} size={{ xs: 6, sm: 3 }}>
-                                  <Paper elevation={0} sx={{ p: 1.5, border: '1px solid #1f2937', bgcolor: '#111827' }}>
+                                  <Paper elevation={0} sx={{ p: 1.5, border: '1px solid var(--border-main)', bgcolor: 'background.paper' }}>
                                     <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', fontSize: 11 }}>
                                       {acc.name}
                                     </Typography>
@@ -288,10 +288,10 @@ export default function SnapshotsPage() {
           </Box>
 
           <Collapse in={showLegacy}>
-            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #1f2937', opacity: 0.7 }}>
+            <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid var(--border-main)', opacity: 0.7 }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ bgcolor: '#0f172a' }}>
+                  <TableRow sx={{ bgcolor: 'var(--surface-card)' }}>
                     <TableCell>Date</TableCell>
                     <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Liquid</TableCell>
                     <TableCell align="right" sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Appreciating</TableCell>
@@ -340,7 +340,7 @@ export default function SnapshotsPage() {
               ['Depreciating', depreciating, '#fbbf24'],
             ].map(([l, v, c]) => (
               <Grid key={String(l)} size={{ xs: 6 }}>
-                <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: '#0f172a', border: '1px solid #1f2937' }}>
+                <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'var(--surface-card)', border: '1px solid var(--border-main)' }}>
                   <Typography variant="caption" sx={{ display: 'block', fontSize: 10, color: String(c) }}>{l}</Typography>
                   <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>₹{fmtINR(Number(v))}</Typography>
                 </Paper>

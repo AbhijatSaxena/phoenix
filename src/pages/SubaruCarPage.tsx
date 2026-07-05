@@ -36,7 +36,7 @@ function EditableRow({ label, value, onCommit, isReadOnly }: {
   }
 
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid var(--border-main)' }}>
       <Typography variant="body2" color="text.secondary">{label}</Typography>
       {editing ? (
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -131,7 +131,7 @@ export default function SubaruCarPage() {
       <Grid container spacing={2.5}>
         {/* Left: selling price + summary */}
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937', mb: 2.5 }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)', mb: 2.5 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Valuation</Typography>
             <EditableRow
               label="Estimated Selling Price"
@@ -139,7 +139,7 @@ export default function SubaruCarPage() {
               onCommit={v => persist({ ...config, estimatedSellingPrice: v })}
               isReadOnly={isReadOnly}
             />
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid #1f2937' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.25, borderBottom: '1px solid var(--border-main)' }}>
               <Typography variant="body2" color="text.secondary">
                 Total Expenditures
               </Typography>
@@ -153,7 +153,7 @@ export default function SubaruCarPage() {
               <Typography variant="subtitle1" sx={{ fontWeight: 700, color: netColor }}>{fmtUSD(dashboardValue)}</Typography>
             </Box>
             {!isReadOnly && (
-              <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid #1f2937' }}>
+              <Box sx={{ mt: 1.5, pt: 1.5, borderTop: '1px solid var(--border-main)' }}>
                 <FormControlLabel
                   control={
                     <Checkbox
@@ -177,7 +177,7 @@ export default function SubaruCarPage() {
             )}
           </Paper>
 
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>Summary</Typography>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
               <Typography variant="body2" color="text.secondary">Estimated Selling Price</Typography>
@@ -201,7 +201,7 @@ export default function SubaruCarPage() {
 
         {/* Right: expenditures list */}
         <Grid size={{ xs: 12, md: 6 }}>
-          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid #1f2937' }}>
+          <Paper elevation={0} sx={{ p: 2.5, border: '1px solid var(--border-main)' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Expenditures</Typography>
               {!isReadOnly && (
@@ -244,7 +244,7 @@ export default function SubaruCarPage() {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     py: 1.25,
-                    borderBottom: '1px solid #1f2937',
+                    borderBottom: '1px solid var(--border-main)',
                     '&:hover .del-btn': { opacity: 1 },
                   }}
                 >
@@ -309,7 +309,7 @@ export default function SubaruCarPage() {
             </Box>
 
             {config.expenditures.length > 0 && (
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.5, borderTop: '1px solid #374151', mt: 1 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1.5, borderTop: '1px solid var(--border-subtle)', mt: 1 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total</Typography>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{fmtUSD(totalExp)}</Typography>
               </Box>

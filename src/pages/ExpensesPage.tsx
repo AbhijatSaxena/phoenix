@@ -47,7 +47,7 @@ function CellInput({ inputRef, value, onChange, onBlur, onKeyDown }: {
         padding: '2px 6px',
         textAlign: 'right',
         fontSize: 12,
-        color: 'white',
+        color: 'inherit',
         outline: 'none',
       }}
     />
@@ -112,7 +112,7 @@ function SortableExpenseRow({
                 if (e.key === 'Enter') onRenameItem(name, editingItemValue)
                 if (e.key === 'Escape') onCancelRename()
               }}
-              style={{ flex: 1, minWidth: 0, background: 'rgba(37,99,235,0.15)', border: '1px solid #2563eb', borderRadius: 4, padding: '2px 6px', fontSize: 12, color: 'white', outline: 'none' }}
+              style={{ flex: 1, minWidth: 0, background: 'rgba(37,99,235,0.15)', border: '1px solid #2563eb', borderRadius: 4, padding: '2px 6px', fontSize: 12, color: 'inherit', outline: 'none' }}
             />
           ) : (
             <Typography
@@ -358,7 +358,7 @@ export default function ExpensesPage() {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Expenses</Typography>
 
       {/* Currency tabs */}
-      <Box sx={{ display: 'flex', gap: 0.5, mb: 2, bgcolor: '#111827', p: 0.5, borderRadius: 2, width: 'fit-content', border: '1px solid #1f2937' }}>
+      <Box sx={{ display: 'flex', gap: 0.5, mb: 2, bgcolor: 'background.paper', p: 0.5, borderRadius: 2, width: 'fit-content', border: '1px solid var(--border-main)' }}>
         {CURRENCIES.map(c => (
           <Button
             key={c}
@@ -387,11 +387,11 @@ export default function ExpensesPage() {
       {loading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', height: 128, alignItems: 'center' }}><CircularProgress size={28} /></Box>
       ) : (
-        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #1f2937', overflow: 'auto' }}>
+        <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid var(--border-main)', overflow: 'auto' }}>
           <Table size="small" sx={{ minWidth: 'max-content' }}>
             <TableHead>
-              <TableRow sx={{ bgcolor: '#0f172a' }}>
-                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: '#0f172a', borderRight: '1px solid #1f2937', minWidth: 160 }}>
+              <TableRow sx={{ bgcolor: 'var(--surface-card)' }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: 'var(--surface-card)', borderRight: '1px solid #1f2937', minWidth: 160 }}>
                   Item
                 </TableCell>
                 {months.map(ym => (
@@ -442,8 +442,8 @@ export default function ExpensesPage() {
 
             <TableBody>
               {/* Salary */}
-              <TableRow sx={{ bgcolor: '#0f172a', '& .MuiTableCell-root': { py: 1 } }}>
-                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: '#0a0f1a', borderRight: '1px solid #1f2937', fontWeight: 700, color: '#34d399', fontSize: 13 }}>
+              <TableRow sx={{ bgcolor: 'var(--surface-card)', '& .MuiTableCell-root': { py: 1 } }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'var(--surface-deep)', borderRight: '1px solid #1f2937', fontWeight: 700, color: '#34d399', fontSize: 13 }}>
                   SALARY
                 </TableCell>
                 {months.map(ym => {
@@ -499,8 +499,8 @@ export default function ExpensesPage() {
 
               {/* Add item row */}
               {!isReadOnly && (
-                <TableRow sx={{ bgcolor: '#0a0f1a' }}>
-                  <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: '#0a0f1a', borderRight: '1px solid #1f2937' }}>
+                <TableRow sx={{ bgcolor: 'var(--surface-deep)' }}>
+                  <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'var(--surface-deep)', borderRight: '1px solid #1f2937' }}>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <input
                         type="text"
@@ -508,7 +508,7 @@ export default function ExpensesPage() {
                         value={newItemName}
                         onChange={e => setNewItemName(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && addItem()}
-                        style={{ flex: 1, minWidth: 0, background: '#111827', border: '1px solid #374151', borderRadius: 4, padding: '4px 8px', fontSize: 12, color: '#d1d5db', outline: 'none' }}
+                        style={{ flex: 1, minWidth: 0, background: '#111827', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '4px 8px', fontSize: 12, color: '#d1d5db', outline: 'none' }}
                       />
                       <Button size="small" variant="contained" onClick={addItem} sx={{ minWidth: 0, px: 1.5, fontSize: 12 }}>Add</Button>
                     </Box>
@@ -519,8 +519,8 @@ export default function ExpensesPage() {
               )}
 
               {/* Saving row */}
-              <TableRow sx={{ bgcolor: '#0f172a', borderTop: '2px solid #374151' }}>
-                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: '#111827', borderRight: '1px solid #374151', fontWeight: 600, color: 'text.primary', fontSize: 13 }}>
+              <TableRow sx={{ bgcolor: 'var(--surface-card)', borderTop: '2px solid #374151' }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper', borderRight: '1px solid #374151', fontWeight: 600, color: 'text.primary', fontSize: 13 }}>
                   {activeCurrency === 'CAD' ? 'Remaining' : 'Saving'}
                 </TableCell>
                 {months.map(ym => {

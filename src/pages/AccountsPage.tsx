@@ -89,7 +89,7 @@ export default function AccountsPage() {
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Accounts</Typography>
 
       {CATEGORIES.map(({ key, label, color }) => (
-        <Paper key={key} elevation={0} sx={{ mb: 2, border: '1px solid #1f2937', overflow: 'hidden' }}>
+        <Paper key={key} elevation={0} sx={{ mb: 2, border: '1px solid var(--border-main)', overflow: 'hidden' }}>
           <Box
             component="button"
             onClick={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
@@ -105,8 +105,8 @@ export default function AccountsPage() {
           </Box>
 
           <Collapse in={!collapsed[key]}>
-            <Box sx={{ borderTop: '1px solid #1f2937' }}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr auto', sm: '5fr 2fr 2fr 1fr 2fr' }, px: 2, py: 1, bgcolor: '#0f172a' }}>
+            <Box sx={{ borderTop: '1px solid var(--border-main)' }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr auto', sm: '5fr 2fr 2fr 1fr 2fr' }, px: 2, py: 1, bgcolor: 'var(--surface-card)' }}>
                 <Typography variant="caption" color="text.disabled">Account</Typography>
                 <Typography variant="caption" color="text.disabled" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>USD</Typography>
                 <Typography variant="caption" color="text.disabled" sx={{ display: { xs: 'none', sm: 'block' }, textAlign: 'right' }}>CAD</Typography>
@@ -124,7 +124,7 @@ export default function AccountsPage() {
                       display: 'grid',
                       gridTemplateColumns: { xs: '1fr auto', sm: '5fr 2fr 2fr 1fr 2fr' },
                       px: 2, py: 1,
-                      borderTop: '1px solid #1f2937',
+                      borderTop: '1px solid var(--border-main)',
                       cursor: isReadOnly ? 'default' : 'pointer',
                       '&:hover': isReadOnly ? {} : { bgcolor: 'action.hover' },
                     }}
@@ -135,7 +135,7 @@ export default function AccountsPage() {
                           {account.name}
                         </Typography>
                         {account.derived && (
-                          <Typography variant="caption" sx={{ color: 'text.disabled', border: '1px solid #374151', px: 0.5, borderRadius: 0.5, fontSize: 10 }}>
+                          <Typography variant="caption" sx={{ color: 'text.disabled', border: '1px solid var(--border-subtle)', px: 0.5, borderRadius: 0.5, fontSize: 10 }}>
                             {account.derived}
                           </Typography>
                         )}

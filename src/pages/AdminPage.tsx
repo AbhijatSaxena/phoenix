@@ -137,10 +137,10 @@ export default function AdminPage() {
         </Tooltip>
       </Box>
 
-      <Paper variant="outlined" sx={{ bgcolor: '#111827', border: '1px solid #1f2937', borderRadius: 2, overflow: 'hidden' }}>
+      <Paper variant="outlined" sx={{ bgcolor: 'background.paper', border: '1px solid var(--border-main)', borderRadius: 2, overflow: 'hidden' }}>
         <Table size="small">
           <TableHead>
-            <TableRow sx={{ '& th': { bgcolor: '#0f172a', borderColor: '#1f2937', fontSize: 11, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' } }}>
+            <TableRow sx={{ '& th': { bgcolor: 'var(--surface-card)', borderColor: 'var(--border-main)', fontSize: 11, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' } }}>
               <TableCell>User</TableCell>
               <TableCell>Device</TableCell>
               <TableCell>Signed in (IST)</TableCell>
@@ -152,7 +152,7 @@ export default function AdminPage() {
           <TableBody>
             {sessions.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: 'text.disabled', borderColor: '#1f2937' }}>
+                <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: 'text.disabled', borderColor: 'var(--border-main)' }}>
                   No sessions found.
                 </TableCell>
               </TableRow>
@@ -165,7 +165,7 @@ export default function AdminPage() {
                   key={s.id}
                   sx={{
                     bgcolor: isCurrent ? 'rgba(37,99,235,0.08)' : 'transparent',
-                    '& td': { borderColor: '#1f2937', fontSize: 12, py: 1.25 },
+                    '& td': { borderColor: 'var(--border-main)', fontSize: 12, py: 1.25 },
                     opacity: s.revoked ? 0.4 : 1,
                   }}
                 >
@@ -271,7 +271,7 @@ export default function AdminPage() {
       {links.length === 0 ? (
         <Typography variant="body2" color="text.disabled" sx={{ py: 2, textAlign: 'center' }}>No links yet.</Typography>
       ) : (
-        <Paper variant="outlined" sx={{ border: '1px solid #1f2937', borderRadius: 2, overflow: 'hidden' }}>
+        <Paper variant="outlined" sx={{ border: '1px solid var(--border-main)', borderRadius: 2, overflow: 'hidden' }}>
           {links.map((link, i) => (
             <Box
               key={link.id}
@@ -336,7 +336,7 @@ export default function AdminPage() {
             size="small"
             variant="outlined"
             onDelete={() => handleRemoveMode(m)}
-            sx={{ borderColor: '#374151', color: 'text.secondary', '& .MuiChip-deleteIcon': { color: 'text.disabled', '&:hover': { color: 'error.main' } } }}
+            sx={{ borderColor: 'var(--border-subtle)', color: 'text.secondary', '& .MuiChip-deleteIcon': { color: 'text.disabled', '&:hover': { color: 'error.main' } } }}
           />
         ))}
         {payModes.length === 0 && (

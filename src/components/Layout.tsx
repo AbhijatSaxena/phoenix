@@ -2,10 +2,13 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Typography, Chip, Tooltip, BottomNavigation, BottomNavigationAction,
-  Paper,
+  Paper, IconButton,
 } from '@mui/material'
+import LightModeIcon from '@mui/icons-material/LightMode'
+import DarkModeIcon from '@mui/icons-material/DarkMode'
 import { useRatesStore } from '../store/ratesStore'
 import { useAuthStore } from '../store/authStore'
+import { useThemeStore } from '../store/themeStore'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '◈',  adminOnly: false },
@@ -23,6 +26,7 @@ const SIDEBAR_W = 200
 export default function Layout() {
   const rates = useRatesStore(s => s.rates)
   const { user, role, signOut } = useAuthStore()
+  const { mode, toggleMode } = useThemeStore()
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -37,15 +41,16 @@ export default function Layout() {
           '& .MuiDrawer-paper': {
             width: SIDEBAR_W,
             boxSizing: 'border-box',
-            bgcolor: '#111827',
-            borderRight: '1px solid #1f2937',
+            bgcolor: 'background.paper',
+            borderRight: '1px solid',
+            borderColor: 'divider',
             display: 'flex',
             flexDirection: 'column',
           },
         }}
       >
         {/* Brand */}
-        <Box sx={{ px: 2.5, py: 2.5, borderBottom: '1px solid #1f2937' }}>
+        <Box sx={{ px: 2.5, py: 2.5, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Personal Management
           </Typography>
@@ -90,12 +95,21 @@ export default function Layout() {
         </List>
 
         {/* Footer */}
-        <Box sx={{ px: 2.5, py: 2, borderBottom: '1px solid #1f2937' }}>
-          <Tooltip title={user?.email ?? ''} placement="top">
-            <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block', fontSize: 11 }}>
-              {user?.email}
-            </Typography>
-          </Tooltip>
+        <Box sx={{ px: 2.5, py: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.5 }}>
+            <Tooltip title={user?.email ?? ''} placement="top">
+              <Typography variant="caption" color="text.secondary" noWrap sx={{ fontSize: 11, flex: 1, minWidth: 0 }}>
+                {user?.email}
+              </Typography>
+            </Tooltip>
+            <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+              <IconButton size="small" onClick={toggleMode} sx={{ color: 'text.disabled', '&:hover': { color: 'text.secondary' }, p: 0.5 }}>
+                {mode === 'dark'
+                  ? <LightModeIcon sx={{ fontSize: 15 }} />
+                  : <DarkModeIcon sx={{ fontSize: 15 }} />}
+              </IconButton>
+            </Tooltip>
+          </Box>
           {role === 'viewer' && (
             <Chip label="View only" size="small" color="warning" variant="outlined" sx={{ mt: 0.5, height: 18, fontSize: 10 }} />
           )}
@@ -133,6 +147,13 @@ export default function Layout() {
             )}
           </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Tooltip title={mode === 'dark' ? 'Light mode' : 'Dark mode'}>
+              <IconButton size="small" onClick={toggleMode} sx={{ color: 'text.disabled', '&:hover': { color: 'text.secondary' } }}>
+                {mode === 'dark'
+                  ? <LightModeIcon sx={{ fontSize: 18 }} />
+                  : <DarkModeIcon sx={{ fontSize: 18 }} />}
+              </IconButton>
+            </Tooltip>
             {role === 'viewer' && (
               <Chip label="View only" size="small" color="warning" variant="outlined" sx={{ height: 18, fontSize: 10 }} />
             )}
@@ -154,12 +175,11 @@ export default function Layout() {
         sx={{
           display: { xs: 'block', md: 'none' },
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          bottom: 0, left: 0, right: 0,
           zIndex: 100,
-          borderTop: '1px solid #1f2937',
-          bgcolor: '#111827',
+          borderTop: '1px solid',
+          borderColor: 'divider',
+          bgcolor: 'background.paper',
         }}
         elevation={0}
       >
