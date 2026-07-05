@@ -281,7 +281,7 @@ export default function AdminPage() {
                 gap: 1.5,
                 px: 2,
                 py: 1.25,
-                borderBottom: i < links.length - 1 ? '1px solid #1f2937' : 'none',
+                borderBottom: i < links.length - 1 ? '1px solid var(--border-main)' : 'none',
                 bgcolor: editingLink?.id === link.id ? 'rgba(37,99,235,0.06)' : 'transparent',
               }}
             >

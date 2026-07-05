@@ -363,7 +363,7 @@ export default function RegentPage() {
               <Typography variant="body2" color="text.secondary">Total EMI Paid</Typography>
               <Typography variant="body2">₹{fmtINR(emiSum)}</Typography>
             </Box>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.5, borderBottom: '1px solid #374151' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1.5, borderBottom: '1px solid var(--border-subtle)' }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Total From Pocket</Typography>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>₹{fmtINR(totalFromPocket)}</Typography>
             </Box>
@@ -404,18 +404,18 @@ export default function RegentPage() {
               isReadOnly={isReadOnly} onAdd={addBulk} onRemove={removeBulk} onEditCommit={editBulk} />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { sm: '1px solid #1f2937' }, pl: { sm: 3 } }}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { sm: '1px solid var(--border-main)' }, pl: { sm: 3 } }}>
             <PaymentList title="TDS Payments" payments={config.tdsPayments} modes={modes}
               isReadOnly={isReadOnly} onAdd={addTds} onRemove={removeTds} onEditCommit={editTds} />
           </Grid>
 
-          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { lg: '1px solid #1f2937' }, pl: { lg: 3 } }}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { lg: '1px solid var(--border-main)' }, pl: { lg: 3 } }}>
             <PaymentList title="Loan Disbursements" payments={config.loanDisbursements} modes={modes}
               isReadOnly={isReadOnly} noMode onAdd={addLoan} onRemove={removeLoan} onEditCommit={editLoan} />
           </Grid>
 
           {/* EMI Schedule */}
-          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { sm: '1px solid #1f2937' }, pl: { sm: 3 } }}>
+          <Grid size={{ xs: 12, sm: 6, lg: 3 }} sx={{ borderLeft: { sm: '1px solid var(--border-main)' }, pl: { sm: 3 } }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
               <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Home Loan EMIs</Typography>
               {!isReadOnly && (

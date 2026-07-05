@@ -95,7 +95,7 @@ function SortableExpenseRow({
 
   return (
     <TableRow ref={setNodeRef} style={style} hover sx={{ '& .MuiTableCell-root': { py: 1 }, '&:hover .delete-row': { opacity: 1 } }}>
-      <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: '#030712', borderRight: '1px solid #1f2937', minWidth: 160, maxWidth: 160 }}>
+      <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.default', borderRight: '1px solid var(--border-main)', minWidth: 160, maxWidth: 160 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
           {!isReadOnly && (
             <Box component="span" {...attributes} {...listeners} sx={{ color: 'text.disabled', cursor: 'grab', lineHeight: 0, '&:active': { cursor: 'grabbing' }, touchAction: 'none' }}>
@@ -391,7 +391,7 @@ export default function ExpensesPage() {
           <Table size="small" sx={{ minWidth: 'max-content' }}>
             <TableHead>
               <TableRow sx={{ bgcolor: 'var(--surface-card)' }}>
-                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: 'var(--surface-card)', borderRight: '1px solid #1f2937', minWidth: 160 }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 2, bgcolor: 'var(--surface-card)', borderRight: '1px solid var(--border-main)', minWidth: 160 }}>
                   Item
                 </TableCell>
                 {months.map(ym => (
@@ -443,7 +443,7 @@ export default function ExpensesPage() {
             <TableBody>
               {/* Salary */}
               <TableRow sx={{ bgcolor: 'var(--surface-card)', '& .MuiTableCell-root': { py: 1 } }}>
-                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'var(--surface-deep)', borderRight: '1px solid #1f2937', fontWeight: 700, color: '#34d399', fontSize: 13 }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'var(--surface-deep)', borderRight: '1px solid var(--border-main)', fontWeight: 700, color: '#34d399', fontSize: 13 }}>
                   SALARY
                 </TableCell>
                 {months.map(ym => {
@@ -500,7 +500,7 @@ export default function ExpensesPage() {
               {/* Add item row */}
               {!isReadOnly && (
                 <TableRow sx={{ bgcolor: 'var(--surface-deep)' }}>
-                  <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'var(--surface-deep)', borderRight: '1px solid #1f2937' }}>
+                  <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'var(--surface-deep)', borderRight: '1px solid var(--border-main)' }}>
                     <Box sx={{ display: 'flex', gap: 1 }}>
                       <input
                         type="text"
@@ -508,7 +508,7 @@ export default function ExpensesPage() {
                         value={newItemName}
                         onChange={e => setNewItemName(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && addItem()}
-                        style={{ flex: 1, minWidth: 0, background: '#111827', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '4px 8px', fontSize: 12, color: '#d1d5db', outline: 'none' }}
+                        style={{ flex: 1, minWidth: 0, background: 'var(--surface-card)', border: '1px solid var(--border-subtle)', borderRadius: 4, padding: '4px 8px', fontSize: 12, color: 'inherit', outline: 'none' }}
                       />
                       <Button size="small" variant="contained" onClick={addItem} sx={{ minWidth: 0, px: 1.5, fontSize: 12 }}>Add</Button>
                     </Box>
@@ -519,8 +519,8 @@ export default function ExpensesPage() {
               )}
 
               {/* Saving row */}
-              <TableRow sx={{ bgcolor: 'var(--surface-card)', borderTop: '2px solid #374151' }}>
-                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper', borderRight: '1px solid #374151', fontWeight: 600, color: 'text.primary', fontSize: 13 }}>
+              <TableRow sx={{ bgcolor: 'var(--surface-card)', borderTop: '2px solid var(--border-subtle)' }}>
+                <TableCell sx={{ position: 'sticky', left: 0, zIndex: 1, bgcolor: 'background.paper', borderRight: '1px solid var(--border-subtle)', fontWeight: 600, color: 'text.primary', fontSize: 13 }}>
                   {activeCurrency === 'CAD' ? 'Remaining' : 'Saving'}
                 </TableCell>
                 {months.map(ym => {

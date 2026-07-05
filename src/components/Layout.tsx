@@ -83,7 +83,7 @@ export default function Layout() {
                       primary={label}
                       slotProps={{
                         primary: {
-                          style: { fontSize: 13, fontWeight: isActive ? 600 : 400, color: isActive ? 'white' : '#9ca3af' },
+                          sx: { fontSize: 13, fontWeight: isActive ? 600 : 400, color: isActive ? 'white' : 'text.secondary' },
                         },
                       }}
                     />
