@@ -11,7 +11,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
-import { fetchAllSessions, revokeSession, fetchPaymentModes, savePaymentModes } from '../services/firebase'
+import { fetchAllSessions, revokeSession, deleteRevokedSessions, fetchPaymentModes, savePaymentModes } from '../services/firebase'
 import type { Session } from '../services/firebase'
 import { confirm } from '../components/ConfirmDialog'
 import { useAuthStore } from '../store/authStore'
@@ -43,6 +43,7 @@ export default function AdminPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading]   = useState(true)
   const [revoking, setRevoking] = useState<string | null>(null)
+  const [clearing, setClearing] = useState(false)
   const currentSessionId = useAuthStore(s => s.sessionId)
 
   const { links, load: loadLinks, add: addLink, update: updateLink, remove: removeLink } = useLinksStore()
@@ -81,6 +82,20 @@ export default function AdminPage() {
     const updated = payModes.filter(x => x !== m)
     await savePaymentModes(updated)
     setPayModes(updated)
+  }
+
+  async function handleClearRevoked() {
+    const revokedCount = sessions.filter(s => s.revoked).length
+    if (revokedCount === 0) return
+    const ok = await confirm({ title: 'Clear revoked sessions', message: `Permanently delete ${revokedCount} revoked session${revokedCount > 1 ? 's' : ''}?` })
+    if (!ok) return
+    setClearing(true)
+    try {
+      await deleteRevokedSessions()
+      setSessions(prev => prev.filter(s => !s.revoked))
+    } finally {
+      setClearing(false)
+    }
   }
 
   async function handleRevoke(session: Session) {
@@ -130,11 +145,26 @@ export default function AdminPage() {
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16 }}>Administration</Typography>
           <Typography variant="caption" color="text.secondary">Active sessions across all devices</Typography>
         </Box>
-        <Tooltip title="Refresh">
-          <IconButton onClick={loadSessions} size="small" disabled={loading}>
-            {loading ? <CircularProgress size={16} /> : <RefreshIcon sx={{ fontSize: 18 }} />}
-          </IconButton>
-        </Tooltip>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {sessions.some(s => s.revoked) && (
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              onClick={handleClearRevoked}
+              disabled={clearing}
+              startIcon={clearing ? <CircularProgress size={12} color="inherit" /> : <DeleteOutlineIcon sx={{ fontSize: 14 }} />}
+              sx={{ fontSize: 11, py: 0.5 }}
+            >
+              Clear revoked
+            </Button>
+          )}
+          <Tooltip title="Refresh">
+            <IconButton onClick={loadSessions} size="small" disabled={loading}>
+              {loading ? <CircularProgress size={16} /> : <RefreshIcon sx={{ fontSize: 18 }} />}
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
 
       <Paper variant="outlined" sx={{ bgcolor: 'background.paper', border: '1px solid var(--border-main)', borderRadius: 2, overflow: 'hidden' }}>
