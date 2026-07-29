@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react'
 import {
-  Box, Paper, Typography, Collapse, CircularProgress,
+  Box, Grid, Paper, Typography, Collapse, CircularProgress,
   Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField,
   FormControl, InputLabel, Select, MenuItem,
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
+import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
 import { useDashboardStore, computeNetInr } from '../store/dashboardStore'
 import { useRatesStore } from '../store/ratesStore'
-import type { Account, Category } from '../types'
+import { useSnapshotStore } from '../store/snapshotStore'
+import type { Account, Category, SnapshotAccount } from '../types'
 import { fmtINR, fmtCurrency } from '../lib/fmt'
 import { useForm } from 'react-hook-form'
 import { useIsReadOnly } from '../store/authStore'
@@ -37,6 +39,7 @@ interface EditForm { usd: number; cad: number; inr: number }
 export default function AccountsPage() {
   const { accounts, loading, load, update } = useDashboardStore()
   const rates = useRatesStore(s => s.rates)
+  const { saveSnapshot, checkTodayExists } = useSnapshotStore()
   const isReadOnly = useIsReadOnly()
 
   const [editing, setEditing] = useState<Account | null>(null)
@@ -44,6 +47,10 @@ export default function AccountsPage() {
   const [collapsed, setCollapsed] = useState<Record<Category, boolean>>({
     liquid: false, appreciating: false, investments: false, depreciating: false,
   })
+  const [snapshotNote, setSnapshotNote] = useState('')
+  const [showSnapshotModal, setShowSnapshotModal] = useState(false)
+  const [savingSnapshot, setSavingSnapshot] = useState(false)
+  const [snapshotStep, setSnapshotStep] = useState<'compose' | 'confirm-overwrite'>('compose')
 
   const { register, handleSubmit, reset } = useForm<EditForm>()
 
@@ -55,6 +62,44 @@ export default function AccountsPage() {
   const byCategory = (cat: Category) => accounts.filter(a => a.category === cat)
   const sectionTotal = (cat: Category) =>
     byCategory(cat).reduce((s, a) => s + computeNetInr(a, usdInr, cadInr), 0)
+
+  const liquid       = sectionTotal('liquid')
+  const appreciating = sectionTotal('appreciating')
+  const investments  = sectionTotal('investments')
+  const depreciating = sectionTotal('depreciating')
+  const netWorth     = liquid + appreciating + investments + depreciating
+
+  function buildAccountsSnapshot(): SnapshotAccount[] {
+    return accounts.map(a => ({
+      id: a.id,
+      name: a.name,
+      category: a.category,
+      inr: computeNetInr(a, usdInr, cadInr),
+    }))
+  }
+
+  async function handleSaveSnapshot() {
+    if (snapshotStep === 'compose' && checkTodayExists()) {
+      setSnapshotStep('confirm-overwrite')
+      return
+    }
+    await doSave(true)
+  }
+
+  async function doSave(overwrite: boolean) {
+    setSavingSnapshot(true)
+    await saveSnapshot(liquid, appreciating, investments, depreciating, snapshotNote, overwrite, buildAccountsSnapshot())
+    setSavingSnapshot(false)
+    setShowSnapshotModal(false)
+    setSnapshotNote('')
+    setSnapshotStep('compose')
+  }
+
+  function closeSnapshotModal() {
+    setShowSnapshotModal(false)
+    setSnapshotStep('compose')
+    setSnapshotNote('')
+  }
 
   function openEdit(account: Account) {
     if (isReadOnly) return
@@ -86,7 +131,14 @@ export default function AccountsPage() {
 
   return (
     <Box>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 3 }}>Accounts</Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Typography variant="h6" sx={{ fontWeight: 700 }}>Accounts</Typography>
+        {!isReadOnly && (
+          <Button variant="outlined" size="small" startIcon={<CameraAltOutlinedIcon />} onClick={() => setShowSnapshotModal(true)}>
+            Save Snapshot
+          </Button>
+        )}
+      </Box>
 
       {CATEGORIES.map(({ key, label, color }) => (
         <Paper key={key} elevation={0} sx={{ mb: 2, border: '1px solid var(--border-main)', overflow: 'hidden' }}>
@@ -169,6 +221,62 @@ export default function AccountsPage() {
           </Collapse>
         </Paper>
       ))}
+
+      {/* Snapshot dialog */}
+      <Dialog open={showSnapshotModal} onClose={closeSnapshotModal} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>
+          {snapshotStep === 'confirm-overwrite' ? 'Snapshot already exists for today' : 'Save Snapshot'}
+        </DialogTitle>
+        <DialogContent>
+          {snapshotStep === 'confirm-overwrite' ? (
+            <Typography variant="body2" color="text.secondary">
+              A snapshot for today already exists. What would you like to do?
+            </Typography>
+          ) : (
+            <>
+              <Grid container spacing={1} sx={{ mb: 2 }}>
+                {CATEGORIES.map(({ key, label, color }) => (
+                  <Grid key={key} size={{ xs: 6 }}>
+                    <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'var(--surface-card)', border: '1px solid var(--border-main)' }}>
+                      <Typography variant="caption" sx={{ display: 'block', fontSize: 10, color }}>{label}</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>₹{fmtINR(sectionTotal(key))}</Typography>
+                    </Paper>
+                  </Grid>
+                ))}
+              </Grid>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                Total: <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>₹{fmtINR(netWorth)}</Box>
+              </Typography>
+              <TextField
+                label="Note (optional)"
+                size="small"
+                fullWidth
+                placeholder="e.g. Salary came, crypto went up..."
+                value={snapshotNote}
+                onChange={e => setSnapshotNote(e.target.value)}
+              />
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          {snapshotStep === 'confirm-overwrite' ? (
+            <>
+              <Button onClick={closeSnapshotModal} color="inherit">Cancel</Button>
+              <Button onClick={() => doSave(false)} variant="outlined" disabled={savingSnapshot}>Add new row</Button>
+              <Button onClick={() => doSave(true)} variant="contained" disabled={savingSnapshot}>
+                {savingSnapshot ? <CircularProgress size={16} color="inherit" /> : 'Overwrite'}
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button onClick={closeSnapshotModal} color="inherit">Cancel</Button>
+              <Button onClick={handleSaveSnapshot} variant="contained" disabled={savingSnapshot}>
+                {savingSnapshot ? <CircularProgress size={16} color="inherit" /> : 'Save'}
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
 
       {/* Edit dialog */}
       <Dialog open={!!editing} onClose={() => setEditing(null)} maxWidth="xs" fullWidth>
