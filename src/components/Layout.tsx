@@ -1,25 +1,34 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   Box, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText,
   Typography, Chip, Tooltip, BottomNavigation, BottomNavigationAction,
   Paper, IconButton,
 } from '@mui/material'
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz'
 import LightModeIcon from '@mui/icons-material/LightMode'
 import DarkModeIcon from '@mui/icons-material/DarkMode'
 import { useRatesStore } from '../store/ratesStore'
 import { useAuthStore } from '../store/authStore'
 import { useThemeStore } from '../store/themeStore'
 
-const navItems = [
+// Items always visible in the mobile bottom bar
+const primaryNavItems = [
   { to: '/dashboard', label: 'Dashboard', icon: '◈',  adminOnly: false },
   { to: '/accounts',  label: 'Accounts',  icon: '💼', adminOnly: false },
-  { to: '/snapshots', label: 'Snapshots',  icon: '📈', adminOnly: false },
-  { to: '/expenses',  label: 'Expenses',   icon: '💸', adminOnly: false },
-  { to: '/property',  label: 'Property',   icon: '🏠', adminOnly: false },
-  { to: '/zerodha',   label: 'Zerodha',    icon: '📊', adminOnly: false },
-  { to: '/car',       label: 'Car',        icon: '🚗', adminOnly: false },
-  { to: '/admin',     label: 'Admin',      icon: '🔐', adminOnly: true  },
+  { to: '/snapshots', label: 'Snapshots', icon: '📈', adminOnly: false },
+  { to: '/expenses',  label: 'Expenses',  icon: '💸', adminOnly: false },
 ]
+
+// Items revealed via the "More" bottom drawer on mobile
+const overflowNavItems = [
+  { to: '/property', label: 'Property', icon: '🏠', adminOnly: false },
+  { to: '/zerodha',  label: 'Zerodha',  icon: '📊', adminOnly: false },
+  { to: '/car',      label: 'Car',      icon: '🚗', adminOnly: false },
+  { to: '/admin',    label: 'Admin',    icon: '🔐', adminOnly: true  },
+]
+
+const allNavItems = [...primaryNavItems, ...overflowNavItems]
 
 const SIDEBAR_W = 200
 
@@ -27,6 +36,11 @@ export default function Layout() {
   const rates = useRatesStore(s => s.rates)
   const { user, role, signOut } = useAuthStore()
   const { mode, toggleMode } = useThemeStore()
+  const location = useLocation()
+  const [moreOpen, setMoreOpen] = useState(false)
+
+  const visibleOverflow = overflowNavItems.filter(n => !n.adminOnly || role === 'admin')
+  const isMoreActive = visibleOverflow.some(n => location.pathname.startsWith(n.to))
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
@@ -65,7 +79,7 @@ export default function Layout() {
 
         {/* Nav links */}
         <List sx={{ flex: 1, px: 1, py: 1.5 }} disablePadding>
-          {navItems.filter(n => !n.adminOnly || role === 'admin').map(({ to, label, icon }) => (
+          {allNavItems.filter(n => !n.adminOnly || role === 'admin').map(({ to, label, icon }) => (
             <NavLink key={to} to={to} style={{ textDecoration: 'none' }}>
               {({ isActive }) => (
                 <ListItem disablePadding sx={{ mb: 0.25 }}>
@@ -170,7 +184,7 @@ export default function Layout() {
         <Outlet />
       </Box>
 
-      {/* Bottom nav (mobile) */}
+      {/* Bottom nav (mobile) — 4 primary tabs + More */}
       <Paper
         sx={{
           display: { xs: 'block', md: 'none' },
@@ -184,7 +198,7 @@ export default function Layout() {
         elevation={0}
       >
         <BottomNavigation sx={{ bgcolor: 'transparent', height: 56 }}>
-          {navItems.filter(n => !n.adminOnly).map(({ to, label, icon }) => (
+          {primaryNavItems.map(({ to, label, icon }) => (
             <NavLink key={to} to={to} style={{ textDecoration: 'none', flex: 1 }}>
               {({ isActive }) => (
                 <BottomNavigationAction
@@ -199,8 +213,70 @@ export default function Layout() {
               )}
             </NavLink>
           ))}
+          <BottomNavigationAction
+            label="More"
+            icon={<MoreHorizIcon sx={{ fontSize: 22 }} />}
+            onClick={() => setMoreOpen(true)}
+            sx={{
+              flex: 1,
+              minWidth: 0,
+              color: isMoreActive ? 'primary.main' : 'text.disabled',
+              '& .MuiBottomNavigationAction-label': { fontSize: 9 },
+            }}
+          />
         </BottomNavigation>
       </Paper>
+
+      {/* "More" bottom drawer (mobile) */}
+      <Drawer
+        anchor="bottom"
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        sx={{ display: { xs: 'block', md: 'none' } }}
+        PaperProps={{
+          sx: {
+            bgcolor: 'background.paper',
+            borderTopLeftRadius: 16,
+            borderTopRightRadius: 16,
+          },
+        }}
+      >
+        {/* Drag handle */}
+        <Box sx={{ width: 36, height: 4, bgcolor: 'divider', borderRadius: 2, mx: 'auto', mt: 1.5, mb: 0.5 }} />
+        <List sx={{ px: 1, pt: 0.5, pb: 2 }} disablePadding>
+          {visibleOverflow.map(({ to, label, icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              style={{ textDecoration: 'none' }}
+              onClick={() => setMoreOpen(false)}
+            >
+              {({ isActive }) => (
+                <ListItem disablePadding sx={{ mb: 0.25 }}>
+                  <ListItemButton
+                    selected={isActive}
+                    sx={{
+                      borderRadius: 2,
+                      py: 1.25,
+                      '&.Mui-selected': { bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } },
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 38, fontSize: 20 }}>{icon}</ListItemIcon>
+                    <ListItemText
+                      primary={label}
+                      slotProps={{
+                        primary: {
+                          sx: { fontSize: 15, fontWeight: isActive ? 600 : 400, color: isActive ? 'white' : 'text.primary' },
+                        },
+                      }}
+                    />
+                  </ListItemButton>
+                </ListItem>
+              )}
+            </NavLink>
+          ))}
+        </List>
+      </Drawer>
     </Box>
   )
 }
