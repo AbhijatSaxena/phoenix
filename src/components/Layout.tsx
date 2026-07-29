@@ -233,11 +233,13 @@ export default function Layout() {
         open={moreOpen}
         onClose={() => setMoreOpen(false)}
         sx={{ display: { xs: 'block', md: 'none' } }}
-        PaperProps={{
-          sx: {
-            bgcolor: 'background.paper',
-            borderTopLeftRadius: 16,
-            borderTopRightRadius: 16,
+        slotProps={{
+          paper: {
+            sx: {
+              bgcolor: 'background.paper',
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+            },
           },
         }}
       >
