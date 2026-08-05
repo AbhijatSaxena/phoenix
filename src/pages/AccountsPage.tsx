@@ -37,7 +37,7 @@ const CATEGORIES: { key: Category; label: string; color: string }[] = [
 interface EditForm { usd: number; cad: number; inr: number }
 
 export default function AccountsPage() {
-  const { accounts, loading, load, update } = useDashboardStore()
+  const { accounts, loading, load, update, remove } = useDashboardStore()
   const rates = useRatesStore(s => s.rates)
   const { saveSnapshot, checkTodayExists } = useSnapshotStore()
   const isReadOnly = useIsReadOnly()
@@ -314,6 +314,13 @@ export default function AccountsPage() {
             )}
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
+            <Button
+              color="error"
+              onClick={async () => { if (editing) { await remove(editing.id); setEditing(null) } }}
+              sx={{ mr: 'auto' }}
+            >
+              Delete
+            </Button>
             <Button onClick={() => setEditing(null)} color="inherit">Cancel</Button>
             <Button type="submit" variant="contained">Save</Button>
           </DialogActions>

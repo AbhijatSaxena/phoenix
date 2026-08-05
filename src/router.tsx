@@ -8,7 +8,6 @@ import ExpensesPage from './pages/ExpensesPage'
 import PropertyPage from './pages/PropertyPage'
 import ZerodhaPage from './pages/ZerodhaPage'
 import AdminPage from './pages/AdminPage'
-import CarPage from './pages/CarPage'
 import AccountsPage from './pages/AccountsPage'
 
 export const router = createBrowserRouter([
@@ -28,7 +27,6 @@ export const router = createBrowserRouter([
           { path: 'expenses',  element: <ExpensesPage /> },
           { path: 'property',  element: <PropertyPage /> },
           { path: 'zerodha',   element: <ZerodhaPage /> },
-          { path: 'car',       element: <CarPage /> },
           { path: 'admin',     element: <AdminPage /> },
         ],
       },
