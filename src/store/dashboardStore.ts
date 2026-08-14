@@ -38,7 +38,7 @@ export const useDashboardStore = create<DashboardState>((set) => ({
                       + rc.carParking + rc.infraCharges + rc.clubHouseCharges
       const withGst   = totalCost * 1.05
       // Apply -20% cancellation deduction only when the flag is on
-      const effectiveValue = rc.includeRefund ? withGst * 0.80 : withGst
+      const effectiveValue = withGst
       propertyValue = effectiveValue - rc.principalOutstanding
     }
 

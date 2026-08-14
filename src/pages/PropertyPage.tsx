@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   Box, Paper, Grid, Typography, Button, TextField, CircularProgress,
-  Divider, IconButton, Checkbox, Tooltip, Select, MenuItem, Chip,
+  Divider, IconButton, Select, MenuItem, Chip,
 } from '@mui/material'
 import AddIcon from '@mui/icons-material/Add'
 import DeleteIcon from '@mui/icons-material/Delete'
@@ -28,7 +28,6 @@ const DEFAULT_CONFIG: PropertyConfig = {
   bulkPayments: [],
   tdsPayments: [],
   loanDisbursements: [],
-  includeRefund: false,
 }
 
 interface EmiForm { date: string; amount: number }
@@ -205,8 +204,7 @@ export default function PropertyPage() {
   const baseTotal  = config.sqft * config.baseRate
   const totalCost  = baseTotal + config.floorRisePremium + config.premiumLocation + config.carParking + config.infraCharges + config.clubHouseCharges
   const withGst    = totalCost * 1.05
-  const refunded   = withGst * 0.80
-  const iGetToKeep = (config.includeRefund ? refunded : withGst) - config.principalOutstanding
+  const iGetToKeep = withGst - config.principalOutstanding
 
   const bulkSum         = config.bulkPayments.reduce((s, p) => s + p.amount, 0)
   const tdsSum          = config.tdsPayments.reduce((s, p) => s + p.amount, 0)
@@ -321,22 +319,6 @@ export default function PropertyPage() {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
               <Typography variant="body2" color="text.secondary">Saleable Value (+5% GST)</Typography>
               <Typography variant="body2">₹{fmtINR(withGst)}</Typography>
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', py: 1, borderBottom: '1px solid var(--border-main)' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                {!isReadOnly && (
-                  <Tooltip title={config.includeRefund ? 'Applied to dashboard value' : 'Not applied to dashboard value'} placement="top">
-                    <Checkbox size="small" checked={!!config.includeRefund}
-                      onChange={e => persist({ ...config, includeRefund: e.target.checked })} sx={{ p: 0.25 }} />
-                  </Tooltip>
-                )}
-                <Typography variant="body2" color={config.includeRefund ? 'text.secondary' : 'text.disabled'}>
-                  Refunded if cancelled (-20%)
-                </Typography>
-              </Box>
-              <Typography variant="body2" color={config.includeRefund ? 'text.primary' : 'text.disabled'}>
-                ₹{fmtINR(refunded)}
-              </Typography>
             </Box>
             <EditableRow label="Principal Outstanding" value={config.principalOutstanding} onCommit={v => persist({ ...config, principalOutstanding: v })} isReadOnly={isReadOnly} />
             <Divider sx={{ my: 1 }} />

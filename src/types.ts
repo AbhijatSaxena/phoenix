@@ -75,7 +75,6 @@ export interface PropertyConfig {
   bulkPayments: PropertyBulkPayment[]
   tdsPayments: PropertyBulkPayment[]
   loanDisbursements: PropertyBulkPayment[]
-  includeRefund: boolean  // if true, apply -20% cancellation deduction to dashboard value
 }
 
 export interface PropertyBulkPayment {
