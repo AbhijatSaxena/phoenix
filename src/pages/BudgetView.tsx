@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
-  Box, Typography, Paper, CircularProgress, Chip, IconButton,
+  Box, Typography, Paper, CircularProgress, Chip, IconButton, Popover, Button,
 } from '@mui/material'
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew'
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos'
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown'
 import TrendingUpIcon from '@mui/icons-material/TrendingUp'
 import TrendingDownIcon from '@mui/icons-material/TrendingDown'
 import SavingsIcon from '@mui/icons-material/Savings'
@@ -64,10 +65,84 @@ function SummaryTile({ label, value, color, sub, icon }: SummaryTileProps) {
   )
 }
 
+const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+function MonthPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null)
+  const [pickerYear, setPickerYear] = useState(() => parseInt(value.split('-')[0]))
+  const curYM = currentYearMonth()
+  const [curY, curM] = curYM.split('-').map(Number)
+
+  function select(m: number) {
+    const ym = `${pickerYear}-${String(m).padStart(2, '0')}`
+    if (ym > curYM) return
+    onChange(ym)
+    setAnchor(null)
+  }
+
+  const [y, mo] = value.split('-').map(Number)
+
+  return (
+    <>
+      <Button
+        size="small"
+        endIcon={<KeyboardArrowDownIcon sx={{ fontSize: 16 }} />}
+        onClick={e => { setPickerYear(y); setAnchor(e.currentTarget) }}
+        sx={{ fontWeight: 600, fontSize: 15, color: 'text.primary', textTransform: 'none', px: 1.5 }}
+      >
+        {MONTH_NAMES[mo - 1]} {y}
+      </Button>
+
+      <Popover
+        open={!!anchor}
+        anchorEl={anchor}
+        onClose={() => setAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        slotProps={{ paper: { sx: { mt: 0.5, borderRadius: 2, border: '1px solid var(--border-main)', boxShadow: 3 } } }}
+      >
+        <Box sx={{ p: 1.5, width: 220 }}>
+          {/* Year navigation */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+            <IconButton size="small" onClick={() => setPickerYear(y => y - 1)} sx={{ color: 'text.secondary' }}>
+              <ArrowBackIosNewIcon sx={{ fontSize: 13 }} />
+            </IconButton>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>{pickerYear}</Typography>
+            <IconButton size="small" onClick={() => setPickerYear(y => y + 1)} disabled={pickerYear >= curY} sx={{ color: 'text.secondary' }}>
+              <ArrowForwardIosIcon sx={{ fontSize: 13 }} />
+            </IconButton>
+          </Box>
+
+          {/* Month grid */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0.5 }}>
+            {MONTH_NAMES.map((name, i) => {
+              const mNum = i + 1
+              const ym = `${pickerYear}-${String(mNum).padStart(2, '0')}`
+              const isFuture = ym > curYM
+              const isSelected = pickerYear === y && mNum === mo
+              return (
+                <Button
+                  key={name}
+                  size="small"
+                  disabled={isFuture}
+                  onClick={() => select(mNum)}
+                  variant={isSelected ? 'contained' : 'text'}
+                  sx={{ fontSize: 12, py: 0.75, minWidth: 0, color: isSelected ? 'white' : isFuture ? 'text.disabled' : 'text.secondary' }}
+                >
+                  {name}
+                </Button>
+              )
+            })}
+          </Box>
+        </Box>
+      </Popover>
+    </>
+  )
+}
+
 export default function BudgetView() {
   const rates = useRatesStore(s => s.rates)
   const [month, setMonth] = useState(currentYearMonth())
-  const monthInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<Record<Currency, MonthExpenses | null>>({ INR: null, USD: null, CAD: null })
 
@@ -111,29 +186,11 @@ export default function BudgetView() {
   return (
     <Box>
       {/* Month navigator */}
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mb: 3 }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 0.5, mb: 3 }}>
         <IconButton size="small" onClick={() => setMonth(prevMonth(month))} sx={{ color: 'text.secondary' }}>
           <ArrowBackIosNewIcon sx={{ fontSize: 14 }} />
         </IconButton>
-
-        {/* Clickable label — opens native month/year picker */}
-        <Box
-          sx={{ position: 'relative', cursor: 'pointer', borderRadius: 1, px: 1.5, py: 0.5, '&:hover': { bgcolor: 'action.hover' } }}
-          onClick={() => { (monthInputRef.current as any)?.showPicker?.(); monthInputRef.current?.click() }}
-        >
-          <Typography variant="subtitle1" sx={{ fontWeight: 600, minWidth: 160, textAlign: 'center', userSelect: 'none' }}>
-            {monthLabel(month)}
-          </Typography>
-          <input
-            ref={monthInputRef}
-            type="month"
-            value={month}
-            max={currentYearMonth()}
-            onChange={e => e.target.value && setMonth(e.target.value)}
-            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
-          />
-        </Box>
-
+        <MonthPicker value={month} onChange={setMonth} />
         <IconButton
           size="small"
           onClick={() => setMonth(nextMonth(month))}
