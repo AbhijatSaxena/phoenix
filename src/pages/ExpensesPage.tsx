@@ -14,6 +14,7 @@ import {
 import type { Currency, MonthExpenses } from '../types'
 import { confirm } from '../components/ConfirmDialog'
 import { useIsReadOnly } from '../store/authStore'
+import BudgetView from './BudgetView'
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors,
   type DragEndEvent,
@@ -162,6 +163,7 @@ function SortableExpenseRow({
 }
 
 const CURRENCIES: Currency[] = ['INR', 'USD', 'CAD']
+type ActiveTab = Currency | 'Budget'
 const SYMBOL: Record<Currency, string> = { INR: '₹', USD: '$', CAD: 'C$' }
 
 function monthLabel(ym: string) {
@@ -176,7 +178,8 @@ function currentYearMonth() {
 }
 
 export default function ExpensesPage() {
-  const [activeCurrency, setActiveCurrency] = useState<Currency>('USD')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('USD')
+  const activeCurrency = activeTab === 'Budget' ? 'USD' : activeTab
   const [expenses, setExpenses] = useState<MonthExpenses[]>([])
   const [rowOrder, setRowOrder] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
@@ -198,7 +201,9 @@ export default function ExpensesPage() {
     useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 5 } }),
   )
 
-  useEffect(() => { loadExpenses(); setExtraMonths([]); setFromMonth(''); setToMonth('') }, [activeCurrency])
+  useEffect(() => {
+    if (activeTab !== 'Budget') { loadExpenses(); setExtraMonths([]); setFromMonth(''); setToMonth('') }
+  }, [activeTab])
   useEffect(() => { if (editCell) inputRef.current?.focus() }, [editCell])
 
   async function loadExpenses() {
@@ -357,21 +362,24 @@ export default function ExpensesPage() {
     <Box sx={{ maxWidth: '100%' }}>
       <Typography variant="h6" sx={{ fontWeight: 700, mb: 2 }}>Expenses</Typography>
 
-      {/* Currency tabs */}
+      {/* Tabs */}
       <Box sx={{ display: 'flex', gap: 0.5, mb: 2, bgcolor: 'background.paper', p: 0.5, borderRadius: 2, width: 'fit-content', border: '1px solid var(--border-main)' }}>
-        {CURRENCIES.map(c => (
+        {([...CURRENCIES, 'Budget'] as ActiveTab[]).map(tab => (
           <Button
-            key={c}
-            onClick={() => setActiveCurrency(c)}
-            variant={activeCurrency === c ? 'contained' : 'text'}
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            variant={activeTab === tab ? 'contained' : 'text'}
             size="small"
-            sx={{ minWidth: 52, fontSize: 13, color: activeCurrency === c ? 'white' : 'text.secondary' }}
+            sx={{ minWidth: tab === 'Budget' ? 68 : 52, fontSize: 13, color: activeTab === tab ? 'white' : 'text.secondary' }}
           >
-            {c}
+            {tab}
           </Button>
         ))}
       </Box>
 
+      {activeTab === 'Budget' && <BudgetView />}
+
+      {activeTab !== 'Budget' && <>
       {/* Month range filter */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 1.5, mb: 2 }}>
         <Typography variant="body2" color="text.secondary">Show:</Typography>
@@ -540,6 +548,7 @@ export default function ExpensesPage() {
           </Table>
         </TableContainer>
       )}
+      </>}
     </Box>
   )
 }
