@@ -11,7 +11,7 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
-import { fetchAllSessions, revokeSession, deleteRevokedSessions, fetchPaymentModes, savePaymentModes, exportDatabase } from '../services/firebase'
+import { fetchAllSessions, revokeSession, deleteRevokedSessions, fetchPaymentModes, savePaymentModes } from '../services/firebase'
 import type { Session } from '../services/firebase'
 import { confirm } from '../components/ConfirmDialog'
 import { useAuthStore } from '../store/authStore'
@@ -54,7 +54,6 @@ export default function AdminPage() {
   const [payModes, setPayModes] = useState<string[]>([])
   const [newMode, setNewMode] = useState('')
   const [savingMode, setSavingMode] = useState(false)
-  const [exporting, setExporting] = useState(false)
 
   const loadSessions = useCallback(async () => {
     setLoading(true)
@@ -136,24 +135,6 @@ export default function AdminPage() {
   function cancelEdit() {
     setEditingLink(null)
     setForm(EMPTY_FORM)
-  }
-
-  async function handleExport() {
-    setExporting(true)
-    try {
-      const data = await exportDatabase()
-      const json = JSON.stringify(data, null, 2)
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      const ts = new Date().toISOString().slice(0, 19).replace(/[T:]/g, '-')
-      a.href = url
-      a.download = `phoenix-backup-${ts}.json`
-      a.click()
-      URL.revokeObjectURL(url)
-    } finally {
-      setExporting(false)
-    }
   }
 
   return (
@@ -393,21 +374,6 @@ export default function AdminPage() {
         )}
       </Box>
 
-      {/* Database Backup */}
-      <Divider sx={{ my: 3 }} />
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16, mb: 0.5 }}>Database Backup</Typography>
-        <Typography variant="caption" color="text.secondary">Export a full snapshot of all Firestore data as JSON.</Typography>
-      </Box>
-      <Button
-        variant="outlined"
-        size="small"
-        onClick={handleExport}
-        disabled={exporting}
-        startIcon={exporting ? <CircularProgress size={14} color="inherit" /> : undefined}
-      >
-        {exporting ? 'Exporting…' : 'Export JSON'}
-      </Button>
     </Box>
   )
 }
