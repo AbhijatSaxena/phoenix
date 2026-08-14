@@ -143,6 +143,7 @@ function MonthPicker({ value, onChange }: { value: string; onChange: (v: string)
 export default function BudgetView() {
   const rates = useRatesStore(s => s.rates)
   const [month, setMonth] = useState(currentYearMonth())
+  const [pctMode, setPctMode] = useState<'expenses' | 'income'>('expenses')
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<Record<Currency, MonthExpenses | null>>({ INR: null, USD: null, CAD: null })
 
@@ -289,13 +290,32 @@ export default function BudgetView() {
           {/* Expense breakdown */}
           {allItems.length > 0 && (
             <Paper elevation={0} sx={{ border: '1px solid var(--border-main)', borderRadius: 2, overflow: 'hidden', mb: 1.5 }}>
-              <Box sx={{ px: 2, py: 1.25, bgcolor: 'var(--surface-card)', borderBottom: '1px solid var(--border-main)' }}>
+              <Box sx={{ px: 2, py: 1, bgcolor: 'var(--surface-card)', borderBottom: '1px solid var(--border-main)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Typography variant="caption" sx={{ fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', fontSize: 10, color: 'text.secondary' }}>
                   Expense breakdown
                 </Typography>
+                <Box sx={{ display: 'flex', bgcolor: 'background.default', borderRadius: 1, border: '1px solid var(--border-main)', overflow: 'hidden' }}>
+                  {(['expenses', 'income'] as const).map(mode => (
+                    <Box
+                      key={mode}
+                      component="button"
+                      onClick={() => setPctMode(mode)}
+                      sx={{
+                        px: 1, py: 0.25, fontSize: 10, border: 'none', cursor: 'pointer',
+                        bgcolor: pctMode === mode ? 'primary.main' : 'transparent',
+                        color: pctMode === mode ? 'white' : 'text.disabled',
+                        fontWeight: pctMode === mode ? 600 : 400,
+                        transition: 'background 0.15s',
+                      }}
+                    >
+                      % of {mode}
+                    </Box>
+                  ))}
+                </Box>
               </Box>
               {allItems.map((item, i) => {
-                const sharePct = totalOutflow > 0 ? (item.inr / totalOutflow) * 100 : 0
+                const base = pctMode === 'expenses' ? totalOutflow : totalInflow
+                const sharePct = base > 0 ? (item.inr / base) * 100 : 0
                 const nativeLabel = item.cur === 'USD' ? `$${item.amount.toLocaleString()}`
                   : item.cur === 'CAD' ? `C$${item.amount.toLocaleString()}`
                   : `₹${item.amount.toLocaleString()}`
