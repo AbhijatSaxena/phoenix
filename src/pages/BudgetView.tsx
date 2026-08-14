@@ -71,7 +71,7 @@ function MonthPicker({ value, onChange }: { value: string; onChange: (v: string)
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   const [pickerYear, setPickerYear] = useState(() => parseInt(value.split('-')[0]))
   const curYM = currentYearMonth()
-  const [curY, curM] = curYM.split('-').map(Number)
+  const [curY] = curYM.split('-').map(Number)
 
   function select(m: number) {
     const ym = `${pickerYear}-${String(m).padStart(2, '0')}`
