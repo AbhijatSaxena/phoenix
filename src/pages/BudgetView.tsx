@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Box, Typography, Paper, CircularProgress, Chip, IconButton,
 } from '@mui/material'
@@ -67,6 +67,7 @@ function SummaryTile({ label, value, color, sub, icon }: SummaryTileProps) {
 export default function BudgetView() {
   const rates = useRatesStore(s => s.rates)
   const [month, setMonth] = useState(currentYearMonth())
+  const monthInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [data, setData] = useState<Record<Currency, MonthExpenses | null>>({ INR: null, USD: null, CAD: null })
 
@@ -114,9 +115,25 @@ export default function BudgetView() {
         <IconButton size="small" onClick={() => setMonth(prevMonth(month))} sx={{ color: 'text.secondary' }}>
           <ArrowBackIosNewIcon sx={{ fontSize: 14 }} />
         </IconButton>
-        <Typography variant="subtitle1" sx={{ fontWeight: 600, minWidth: 160, textAlign: 'center' }}>
-          {monthLabel(month)}
-        </Typography>
+
+        {/* Clickable label — opens native month/year picker */}
+        <Box
+          sx={{ position: 'relative', cursor: 'pointer', borderRadius: 1, px: 1.5, py: 0.5, '&:hover': { bgcolor: 'action.hover' } }}
+          onClick={() => { (monthInputRef.current as any)?.showPicker?.(); monthInputRef.current?.click() }}
+        >
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, minWidth: 160, textAlign: 'center', userSelect: 'none' }}>
+            {monthLabel(month)}
+          </Typography>
+          <input
+            ref={monthInputRef}
+            type="month"
+            value={month}
+            max={currentYearMonth()}
+            onChange={e => e.target.value && setMonth(e.target.value)}
+            style={{ position: 'absolute', inset: 0, opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }}
+          />
+        </Box>
+
         <IconButton
           size="small"
           onClick={() => setMonth(nextMonth(month))}
