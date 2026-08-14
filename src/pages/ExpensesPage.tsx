@@ -178,7 +178,7 @@ function currentYearMonth() {
 }
 
 export default function ExpensesPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('USD')
+  const [activeTab, setActiveTab] = useState<ActiveTab>('Budget')
   const activeCurrency = activeTab === 'Budget' ? 'USD' : activeTab
   const [expenses, setExpenses] = useState<MonthExpenses[]>([])
   const [rowOrder, setRowOrder] = useState<string[]>([])
