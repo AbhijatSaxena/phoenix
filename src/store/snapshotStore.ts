@@ -7,7 +7,7 @@ interface SnapshotState {
   loading: boolean
   loaded: boolean
   load: () => Promise<void>
-  checkTodayExists: () => Promise<boolean>
+  findTodaySnapshot: () => Promise<Snapshot | null>
   saveSnapshot: (
     liquid: number,
     appreciating: number,
@@ -42,10 +42,11 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
 
   // Async and self-loading: callers may not have loaded the store, and an
   // unloaded store must not be mistaken for "no snapshot exists today".
-  checkTodayExists: async () => {
+  // Returns the row itself so callers can show what an overwrite would replace.
+  findTodaySnapshot: async () => {
     if (!get().loaded) await get().load()
     const today = todayIso()
-    return get().snapshots.some(s => s.date === today)
+    return get().snapshots.find(s => s.date === today) ?? null
   },
 
   saveSnapshot: async (liquid, appreciating, investments, depreciating, notes, overwrite, accountsSnapshot) => {
