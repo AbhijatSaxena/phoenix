@@ -100,7 +100,7 @@ export default function SaveSnapshotDialog({ open, onClose }: { open: boolean; o
       <DialogTitle sx={{ pb: 1 }}>
         {step === 'confirm-overwrite' ? 'Snapshot already exists for today' : 'Save Snapshot'}
       </DialogTitle>
-      <DialogContent sx={{ pt: 2 }}>
+      <DialogContent>
         {step === 'confirm-overwrite' ? (
           <>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>

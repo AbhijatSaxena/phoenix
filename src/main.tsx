@@ -55,6 +55,15 @@ function createAppTheme(mode: 'dark' | 'light') {
       MuiPaper: {
         styleOverrides: { root: { backgroundImage: 'none' } },
       },
+      MuiDialogContent: {
+        styleOverrides: {
+          // MUI zeroes padding-top when content follows a DialogTitle, via a
+          // two-class selector an `sx` prop can't outrank. Combined with
+          // overflow-y: auto that clips the floating label of a first outlined
+          // field. Restore enough room, once, for every dialog in the app.
+          root: { '.MuiDialogTitle-root + &': { paddingTop: 14 } },
+        },
+      },
       MuiTableCell: {
         styleOverrides: {
           root: { borderColor: dark ? '#1f2937' : '#e2e8f0' },

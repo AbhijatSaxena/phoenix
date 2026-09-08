@@ -16,7 +16,10 @@ import { useIsReadOnly } from '../store/authStore'
 import type { AffordabilityPlan, AffordabilityAllocation, Account } from '../types'
 import { fmtINR } from '../lib/fmt'
 
-const clampPct = (n: number) => Math.min(100, Math.max(0, Math.round(n)))
+// Two decimals, so an amount typed on the right can round-trip to a percentage
+// without visibly drifting from what was entered.
+const clampPct = (n: number) =>
+  isFinite(n) ? Math.min(100, Math.max(0, Math.round(n * 100) / 100)) : 0
 
 /** Inline click-to-edit for the plan's target amount. */
 function EditableAmount({ value, onCommit, isReadOnly }: {
@@ -74,8 +77,28 @@ function AllocationRow({ alloc, account, isReadOnly, onCommit, onRemove }: {
   const [pct, setPct] = useState(alloc.percent)
   useEffect(() => { setPct(alloc.percent) }, [alloc.percent])
 
+  const [amtEditing, setAmtEditing] = useState(false)
+  const [amtDraft, setAmtDraft]     = useState('')
+
   const available   = account ? computeNetInr(account, usdInr, cadInr) : 0
   const contributes = available * pct / 100
+
+  // Only meaningful to work backwards from an amount if there's a positive
+  // balance to take a share of.
+  const amountEditable = !isReadOnly && available > 0
+  const draftNum = parseFloat(amtDraft)
+  const overMax  = !isNaN(draftNum) && draftNum > available
+
+  function commitAmount() {
+    const amt = parseFloat(amtDraft)
+    if (!isNaN(amt) && available > 0) {
+      const capped   = Math.min(Math.max(amt, 0), available)   // never above 100%
+      const nextPct  = clampPct((capped / available) * 100)
+      setPct(nextPct)
+      onCommit(nextPct)
+    }
+    setAmtEditing(false)
+  }
 
   return (
     <Box sx={{ px: 2, py: 1.5, borderTop: '1px solid var(--border-main)' }}>
@@ -107,15 +130,40 @@ function AllocationRow({ alloc, account, isReadOnly, onCommit, onRemove }: {
         <TextField
           size="small" type="number" value={pct}
           disabled={isReadOnly}
-          onChange={e => setPct(clampPct(Number(e.target.value)))}
+          onChange={e => { const v = Number(e.target.value); if (!isNaN(v)) setPct(clampPct(v)) }}
           onBlur={() => onCommit(clampPct(pct))}
           onKeyDown={e => { if (e.key === 'Enter') onCommit(clampPct(pct)) }}
-          slotProps={{ htmlInput: { min: 0, max: 100, style: { width: 46, textAlign: 'right', padding: '6px 8px' } } }}
+          slotProps={{ htmlInput: { min: 0, max: 100, style: { width: 56, textAlign: 'right', padding: '6px 8px' } } }}
         />
         <Typography variant="caption" color="text.disabled">%</Typography>
-        <Typography variant="body2" sx={{ fontWeight: 600, minWidth: 100, textAlign: 'right' }}>
-          ₹{fmtINR(contributes)}
-        </Typography>
+
+        {/* Amount side — editing it back-solves the percentage */}
+        {amtEditing ? (
+          <TextField
+            size="small" type="number" value={amtDraft} autoFocus
+            error={overMax}
+            onChange={e => setAmtDraft(e.target.value)}
+            onBlur={commitAmount}
+            onKeyDown={e => { if (e.key === 'Enter') commitAmount(); if (e.key === 'Escape') setAmtEditing(false) }}
+            slotProps={{ htmlInput: { min: 0, max: available, style: { width: 110, textAlign: 'right', padding: '6px 8px' } } }}
+          />
+        ) : (
+          <Typography
+            variant="body2"
+            onClick={() => {
+              if (!amountEditable) return
+              setAmtDraft(String(Math.round(contributes)))
+              setAmtEditing(true)
+            }}
+            sx={{
+              fontWeight: 600, minWidth: 110, textAlign: 'right',
+              cursor: amountEditable ? 'pointer' : 'default',
+              '&:hover': amountEditable ? { textDecoration: 'underline' } : {},
+            }}
+          >
+            ₹{fmtINR(contributes)}
+          </Typography>
+        )}
       </Box>
     </Box>
   )
@@ -325,7 +373,7 @@ export default function AffordabilityPage() {
       {/* New plan dialog */}
       <Dialog open={newOpen} onClose={() => setNewOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>New Plan</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <TextField
             label="What for?" size="small" fullWidth autoFocus
             placeholder="e.g. Buy a car, Clear HDFC loan"
