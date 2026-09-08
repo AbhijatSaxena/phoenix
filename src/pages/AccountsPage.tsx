@@ -332,7 +332,7 @@ export default function AccountsPage() {
       {/* Add Account dialog */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>Add Account</DialogTitle>
-        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
           <TextField label="Account Name" size="small" fullWidth autoFocus value={addName} onChange={e => setAddName(e.target.value)} />
           <FormControl size="small" fullWidth>
             <InputLabel>Category</InputLabel>
@@ -373,7 +373,7 @@ export default function AccountsPage() {
       <Dialog open={!!editing} onClose={() => setEditing(null)} maxWidth="xs" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>Edit: {editing?.name}</DialogTitle>
         <form onSubmit={handleSubmit(onSubmitEdit)}>
-          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
             <FormControl size="small" fullWidth>
               <InputLabel>Category</InputLabel>
               <Select
