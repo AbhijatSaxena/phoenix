@@ -21,13 +21,13 @@ const CATEGORIES: { key: Category; label: string; color: string }[] = [
  * open this, so the overwrite prompt and the totals can't drift apart.
  */
 export default function SaveSnapshotDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { accounts, load: loadAccounts } = useDashboardStore()
+  const { accounts, loading: accountsLoading, load: loadAccounts } = useDashboardStore()
   const rates = useRatesStore(s => s.rates)
   const { saveSnapshot, checkTodayExists } = useSnapshotStore()
 
-  const [note, setNote]     = useState('')
-  const [saving, setSaving] = useState(false)
-  const [step, setStep]     = useState<'compose' | 'confirm-overwrite'>('compose')
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [step, setStep] = useState<'compose' | 'confirm-overwrite'>('compose')
 
   // Totals come from the accounts list, which the opening page may not have
   // loaded. Without this the dialog would happily save an all-zero snapshot.
@@ -47,7 +47,10 @@ export default function SaveSnapshotDialog({ open, onClose }: { open: boolean; o
   const depreciating = totalFor('depreciating')
   const netWorth     = liquid + appreciating + investments + depreciating
 
-  const ready = accounts.length > 0
+  // Rates matter as much as accounts: saving before they arrive would convert
+  // USD/CAD at the hardcoded fallbacks and bake wrong figures into history.
+  const ready = accounts.length > 0 && !!rates
+  const empty = !accountsLoading && accounts.length === 0
 
   function close() {
     onClose()
@@ -55,21 +58,27 @@ export default function SaveSnapshotDialog({ open, onClose }: { open: boolean; o
     setNote('')
   }
 
-  async function handleSave() {
+  // Every action funnels through this, so the button can't be fired twice while
+  // an await is in flight — including the checkTodayExists() network round-trip.
+  async function guarded(fn: () => Promise<void>) {
+    if (busy) return
+    setBusy(true)
+    try { await fn() } finally { setBusy(false) }
+  }
+
+  const handleSave = () => guarded(async () => {
     if (step === 'compose' && await checkTodayExists()) {
       setStep('confirm-overwrite')
       return
     }
-    await doSave(true)
-  }
+    await writeSnapshot(true)
+  })
 
-  async function doSave(overwrite: boolean) {
+  async function writeSnapshot(overwrite: boolean) {
     const accountsSnapshot: SnapshotAccount[] = accounts.map(a => ({
       id: a.id, name: a.name, category: a.category, inr: computeNetInr(a, usdInr, cadInr),
     }))
-    setSaving(true)
     await saveSnapshot(liquid, appreciating, investments, depreciating, note, overwrite, accountsSnapshot)
-    setSaving(false)
     close()
   }
 
@@ -83,9 +92,16 @@ export default function SaveSnapshotDialog({ open, onClose }: { open: boolean; o
           <Typography variant="body2" color="text.secondary">
             A snapshot for today already exists. Overwrite it, or keep both as separate rows?
           </Typography>
+        ) : empty ? (
+          <Typography variant="body2" color="text.disabled" sx={{ py: 3, textAlign: 'center' }}>
+            No accounts to snapshot.
+          </Typography>
         ) : !ready ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, py: 4 }}>
             <CircularProgress size={24} />
+            <Typography variant="caption" color="text.disabled">
+              {!rates ? 'Fetching exchange rates…' : 'Loading balances…'}
+            </Typography>
           </Box>
         ) : (
           <>
@@ -117,16 +133,18 @@ export default function SaveSnapshotDialog({ open, onClose }: { open: boolean; o
         {step === 'confirm-overwrite' ? (
           <>
             <Button onClick={close} color="inherit">Cancel</Button>
-            <Button onClick={() => doSave(false)} variant="outlined" disabled={saving}>Add new row</Button>
-            <Button onClick={() => doSave(true)} variant="contained" disabled={saving}>
-              {saving ? <CircularProgress size={16} color="inherit" /> : 'Overwrite'}
+            <Button onClick={() => guarded(() => writeSnapshot(false))} variant="outlined" disabled={busy}>
+              Add new row
+            </Button>
+            <Button onClick={() => guarded(() => writeSnapshot(true))} variant="contained" disabled={busy}>
+              {busy ? <CircularProgress size={16} color="inherit" /> : 'Overwrite'}
             </Button>
           </>
         ) : (
           <>
             <Button onClick={close} color="inherit">Cancel</Button>
-            <Button onClick={handleSave} variant="contained" disabled={saving || !ready}>
-              {saving ? <CircularProgress size={16} color="inherit" /> : 'Save'}
+            <Button onClick={handleSave} variant="contained" disabled={busy || !ready}>
+              {busy ? <CircularProgress size={16} color="inherit" /> : 'Save'}
             </Button>
           </>
         )}
