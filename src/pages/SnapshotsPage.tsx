@@ -77,6 +77,13 @@ export default function SnapshotsPage() {
   const v2Snapshots = [...snapshots].filter(s => s.version === 2).reverse()
   const v1Snapshots = [...snapshots].filter(s => !s.version || s.version === 1).reverse()
 
+  // Diff is derived — change in total vs the chronologically previous snapshot.
+  // Computed here rather than read from the stored `difference` field, which can
+  // go stale when a snapshot is overwritten, edited, or an earlier row deleted.
+  const diffById = new Map<string, number | null>(
+    snapshots.map((s, i) => [s.id, i === 0 ? null : s.total - snapshots[i - 1].total])
+  )
+
   const chartData = snapshots.slice(-40).map(s => ({
     date: s.date.slice(5),
     total: Math.round(s.total / 1_00_000),
@@ -145,16 +152,19 @@ export default function SnapshotsPage() {
     </TableCell>
   )
 
-  const diffCell = (s: typeof snapshots[0]) => (
-    <TableCell align="right">
-      <Typography
-        variant="body2"
-        sx={{ fontWeight: 500, color: diffClass(s.difference) === 'positive' ? 'success.main' : diffClass(s.difference) === 'negative' ? 'error.main' : 'text.secondary' }}
-      >
-        {fmtDiff(s.difference)}
-      </Typography>
-    </TableCell>
-  )
+  const diffCell = (s: typeof snapshots[0]) => {
+    const diff = diffById.get(s.id) ?? null
+    return (
+      <TableCell align="right">
+        <Typography
+          variant="body2"
+          sx={{ fontWeight: 500, color: diffClass(diff) === 'positive' ? 'success.main' : diffClass(diff) === 'negative' ? 'error.main' : 'text.secondary' }}
+        >
+          {fmtDiff(diff)}
+        </Typography>
+      </TableCell>
+    )
+  }
 
   return (
     <Box>

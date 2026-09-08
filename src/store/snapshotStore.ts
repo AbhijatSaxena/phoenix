@@ -52,16 +52,18 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
     const existingToday = existing.find(s => s.date === today)
 
     let id: string
-    let difference: number | null
-
     if (existingToday && overwrite) {
       id = existingToday.id
-      difference = existingToday.difference
     } else {
       id = existingToday ? `${today}-${Date.now().toString(36)}` : today
-      const prevEntry = existing.length > 0 ? existing[existing.length - 1] : null
-      difference = prevEntry ? total - prevEntry.total : null
     }
+
+    // Always recompute against the most recent snapshot other than the row being
+    // written. On overwrite the existing row's own difference is stale, since the
+    // totals it was derived from are the ones being replaced.
+    const prior      = existing.filter(s => s.id !== id)
+    const prevEntry  = prior.length > 0 ? prior[prior.length - 1] : null
+    const difference = prevEntry ? total - prevEntry.total : null
 
     const snapshot: Snapshot = {
       id,
