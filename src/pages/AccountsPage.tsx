@@ -13,6 +13,7 @@ import { useRatesStore } from '../store/ratesStore'
 import { useSnapshotStore } from '../store/snapshotStore'
 import type { Account, Category, SnapshotAccount } from '../types'
 import { fmtINR, fmtCurrency } from '../lib/fmt'
+import { confirm } from '../components/ConfirmDialog'
 import { useForm } from 'react-hook-form'
 import { useIsReadOnly } from '../store/authStore'
 
@@ -139,6 +140,18 @@ export default function AccountsPage() {
     setEditing(account)
     setEditCategory(account.category)
     reset({ usd: account.usd, cad: account.cad, inr: account.inr })
+  }
+
+  async function handleDeleteAccount() {
+    if (!editing) return
+    const net = computeNetInr(editing, usdInr, cadInr)
+    const ok = await confirm({
+      title: 'Delete account',
+      message: `Permanently delete "${editing.name}" (₹${fmtINR(net)})? This cannot be undone. Past snapshots keep their own copy and won't be affected.`,
+    })
+    if (!ok) return
+    await remove(editing.id)
+    setEditing(null)
   }
 
   async function onSubmitEdit(data: EditForm) {
@@ -392,11 +405,7 @@ export default function AccountsPage() {
             )}
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button
-              color="error"
-              onClick={async () => { if (editing) { await remove(editing.id); setEditing(null) } }}
-              sx={{ mr: 'auto' }}
-            >
+            <Button color="error" onClick={handleDeleteAccount} sx={{ mr: 'auto' }}>
               Delete
             </Button>
             <Button onClick={() => setEditing(null)} color="inherit">Cancel</Button>
