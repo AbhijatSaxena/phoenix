@@ -7,6 +7,7 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
+import AddIcon from '@mui/icons-material/Add'
 import { useDashboardStore, computeNetInr } from '../store/dashboardStore'
 import { useRatesStore } from '../store/ratesStore'
 import { useSnapshotStore } from '../store/snapshotStore'
@@ -37,7 +38,7 @@ const CATEGORIES: { key: Category; label: string; color: string }[] = [
 interface EditForm { usd: number; cad: number; inr: number }
 
 export default function AccountsPage() {
-  const { accounts, loading, load, update, remove } = useDashboardStore()
+  const { accounts, loading, load, update, remove, add } = useDashboardStore()
   const rates = useRatesStore(s => s.rates)
   const { saveSnapshot, checkTodayExists } = useSnapshotStore()
   const isReadOnly = useIsReadOnly()
@@ -47,6 +48,15 @@ export default function AccountsPage() {
   const [collapsed, setCollapsed] = useState<Record<Category, boolean>>({
     liquid: false, appreciating: false, investments: false, depreciating: false,
   })
+  const [addOpen, setAddOpen] = useState(false)
+  const [addName, setAddName] = useState('')
+  const [addCategory, setAddCategory] = useState<Category>('investments')
+  const [addInsertAfter, setAddInsertAfter] = useState<string>('end')
+  const [addUsd, setAddUsd] = useState('')
+  const [addCad, setAddCad] = useState('')
+  const [addInr, setAddInr] = useState('')
+  const [addSaving, setAddSaving] = useState(false)
+
   const [snapshotNote, setSnapshotNote] = useState('')
   const [showSnapshotModal, setShowSnapshotModal] = useState(false)
   const [savingSnapshot, setSavingSnapshot] = useState(false)
@@ -68,6 +78,29 @@ export default function AccountsPage() {
   const investments  = sectionTotal('investments')
   const depreciating = sectionTotal('depreciating')
   const netWorth     = liquid + appreciating + investments + depreciating
+
+  function computeNewOrder(category: Category, afterId: string): number {
+    const cat = byCategory(category)
+    if (cat.length === 0) return Math.max(0, ...accounts.map(a => a.order)) + 1
+    if (afterId === 'beginning') return cat[0].order - 0.5
+    if (afterId === 'end') return cat[cat.length - 1].order + 1
+    const idx = cat.findIndex(a => a.id === afterId)
+    if (idx < 0 || idx === cat.length - 1) return cat[cat.length - 1].order + 1
+    return (cat[idx].order + cat[idx + 1].order) / 2
+  }
+
+  async function handleAddAccount() {
+    const name = addName.trim()
+    if (!name) return
+    setAddSaving(true)
+    const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '') + '-' + Date.now().toString(36)
+    const order = computeNewOrder(addCategory, addInsertAfter)
+    await add({ id, name, category: addCategory, usd: Number(addUsd) || 0, cad: Number(addCad) || 0, inr: Number(addInr) || 0, order, updatedAt: Date.now() })
+    setAddSaving(false)
+    setAddOpen(false)
+    setAddName(''); setAddUsd(''); setAddCad(''); setAddInr('')
+    setAddCategory('investments'); setAddInsertAfter('end')
+  }
 
   function buildAccountsSnapshot(): SnapshotAccount[] {
     return accounts.map(a => ({
@@ -134,9 +167,14 @@ export default function AccountsPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>Accounts</Typography>
         {!isReadOnly && (
-          <Button variant="outlined" size="small" startIcon={<CameraAltOutlinedIcon />} onClick={() => setShowSnapshotModal(true)}>
-            Save Snapshot
-          </Button>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button variant="outlined" size="small" startIcon={<CameraAltOutlinedIcon />} onClick={() => setShowSnapshotModal(true)}>
+              Save Snapshot
+            </Button>
+            <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
+              Add Account
+            </Button>
+          </Box>
         )}
       </Box>
 
@@ -275,6 +313,46 @@ export default function AccountsPage() {
               </Button>
             </>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Account dialog */}
+      <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ pb: 1 }}>Add Account</DialogTitle>
+        <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+          <TextField label="Account Name" size="small" fullWidth autoFocus value={addName} onChange={e => setAddName(e.target.value)} />
+          <FormControl size="small" fullWidth>
+            <InputLabel>Category</InputLabel>
+            <Select value={addCategory} label="Category" onChange={e => { setAddCategory(e.target.value as Category); setAddInsertAfter('end') }}>
+              {CATEGORIES.map(c => <MenuItem key={c.key} value={c.key}>{c.label}</MenuItem>)}
+            </Select>
+          </FormControl>
+          <FormControl size="small" fullWidth>
+            <InputLabel>Insert after</InputLabel>
+            <Select value={addInsertAfter} label="Insert after" onChange={e => setAddInsertAfter(e.target.value)}>
+              <MenuItem value="beginning"><em>— Beginning of section —</em></MenuItem>
+              {byCategory(addCategory).map(a => <MenuItem key={a.id} value={a.id}>{a.name}</MenuItem>)}
+              <MenuItem value="end"><em>— End of section —</em></MenuItem>
+            </Select>
+          </FormControl>
+          {(['usd', 'cad', 'inr'] as const).map(field => (
+            <TextField
+              key={field}
+              label={`${field.toUpperCase()} Amount`}
+              type="number"
+              size="small"
+              fullWidth
+              slotProps={{ htmlInput: { step: 'any' } }}
+              value={field === 'usd' ? addUsd : field === 'cad' ? addCad : addInr}
+              onChange={e => { if (field === 'usd') setAddUsd(e.target.value); else if (field === 'cad') setAddCad(e.target.value); else setAddInr(e.target.value) }}
+            />
+          ))}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setAddOpen(false)} color="inherit">Cancel</Button>
+          <Button onClick={handleAddAccount} variant="contained" disabled={addSaving || !addName.trim()}>
+            {addSaving ? <CircularProgress size={16} color="inherit" /> : 'Add'}
+          </Button>
         </DialogActions>
       </Dialog>
 
