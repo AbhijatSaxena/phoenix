@@ -24,6 +24,7 @@ const primaryNavItems = [
 const overflowNavItems = [
   { to: '/property', label: 'Property', icon: '🏠', adminOnly: false },
   { to: '/zerodha',  label: 'Zerodha',  icon: '📊', adminOnly: false },
+  { to: '/handover', label: 'Handover', icon: '🕊️', adminOnly: false },
   { to: '/admin',    label: 'Admin',    icon: '🔐', adminOnly: true  },
 ]
 

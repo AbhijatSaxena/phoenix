@@ -118,6 +118,16 @@ export interface QuickLink {
   order: number
 }
 
+// ─── Handover ────────────────────────────────────────────────────────────────
+
+export interface HandoverNote {
+  id: string
+  title: string
+  content: string
+  order: number
+  updatedAt?: number  // epoch ms
+}
+
 export interface ZerodhaEntry {
   id: string
   date: string   // ISO date string

@@ -9,6 +9,7 @@ import PropertyPage from './pages/PropertyPage'
 import ZerodhaPage from './pages/ZerodhaPage'
 import AdminPage from './pages/AdminPage'
 import AccountsPage from './pages/AccountsPage'
+import HandoverPage from './pages/HandoverPage'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
           { path: 'expenses',  element: <ExpensesPage /> },
           { path: 'property',  element: <PropertyPage /> },
           { path: 'zerodha',   element: <ZerodhaPage /> },
+          { path: 'handover',  element: <HandoverPage /> },
           { path: 'admin',     element: <AdminPage /> },
         ],
       },

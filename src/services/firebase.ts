@@ -278,3 +278,19 @@ export async function deleteLink(id: string) {
   await deleteDoc(doc(db, 'links', id))
 }
 
+// ─── Handover ────────────────────────────────────────────────────────────────
+
+export async function fetchHandoverNotes() {
+  const snap = await getDocs(query(collection(db, 'handover'), orderBy('order')))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+export async function saveHandoverNote(note: Record<string, unknown>) {
+  const { id, ...data } = note
+  await setDoc(doc(db, 'handover', id as string), data)
+}
+
+export async function deleteHandoverNote(id: string) {
+  await deleteDoc(doc(db, 'handover', id))
+}
+
