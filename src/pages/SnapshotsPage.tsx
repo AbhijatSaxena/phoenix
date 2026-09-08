@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from 'react'
 import {
   Box, Paper, Typography, Button, CircularProgress, IconButton,
-  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Grid,
+  TextField, Grid,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip,
   Collapse,
 } from '@mui/material'
@@ -11,24 +11,18 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import { confirm } from '../components/ConfirmDialog'
 import { useSnapshotStore } from '../store/snapshotStore'
-import { useDashboardStore, computeNetInr } from '../store/dashboardStore'
-import { useRatesStore } from '../store/ratesStore'
+import SaveSnapshotDialog from '../components/SaveSnapshotDialog'
 import { fmtINR, fmtDiff, diffClass, isoToDisplay } from '../lib/fmt'
 import { useIsReadOnly } from '../store/authStore'
-import type { SnapshotAccount } from '../types'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer,
 } from 'recharts'
 
 export default function SnapshotsPage() {
-  const { snapshots, loading, load, saveSnapshot, updateSnapshot, removeSnapshot } = useSnapshotStore()
-  const accounts   = useDashboardStore(s => s.accounts)
-  const rates      = useRatesStore(s => s.rates)
+  const { snapshots, loading, load, updateSnapshot, removeSnapshot } = useSnapshotStore()
   const isReadOnly = useIsReadOnly()
 
   const [showModal, setShowModal]       = useState(false)
-  const [note, setNote]                 = useState('')
-  const [saving, setSaving]             = useState(false)
   const [editCell, setEditCell]         = useState<{ id: string } | null>(null)
   const [editValue, setEditValue]       = useState('')
   const [expandedRow, setExpandedRow]   = useState<string | null>(null)
@@ -53,25 +47,6 @@ export default function SnapshotsPage() {
   }
 
   useEffect(() => { load() }, [])
-
-  const usdInr = rates?.usdInr ?? 84
-  const cadInr = rates?.cadInr ?? 62
-
-  const liquid       = accounts.filter(a => a.category === 'liquid').reduce((s, a) => s + computeNetInr(a, usdInr, cadInr), 0)
-  const appreciating = accounts.filter(a => a.category === 'appreciating').reduce((s, a) => s + computeNetInr(a, usdInr, cadInr), 0)
-  const investments  = accounts.filter(a => a.category === 'investments').reduce((s, a) => s + computeNetInr(a, usdInr, cadInr), 0)
-  const depreciating = accounts.filter(a => a.category === 'depreciating').reduce((s, a) => s + computeNetInr(a, usdInr, cadInr), 0)
-
-  async function handleSave() {
-    setSaving(true)
-    const accountsSnapshot: SnapshotAccount[] = accounts.map(a => ({
-      id: a.id, name: a.name, category: a.category, inr: computeNetInr(a, usdInr, cadInr),
-    }))
-    await saveSnapshot(liquid, appreciating, investments, depreciating, note, false, accountsSnapshot)
-    setSaving(false)
-    setShowModal(false)
-    setNote('')
-  }
 
   // Split snapshots into V2 (new) and V1 (legacy)
   const v2Snapshots = [...snapshots].filter(s => s.version === 2).reverse()
@@ -339,36 +314,7 @@ export default function SnapshotsPage() {
       )}
 
       {/* Save modal */}
-      <Dialog open={showModal} onClose={() => setShowModal(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>Save Snapshot</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={1} sx={{ mb: 2 }}>
-            {[
-              ['Liquid', liquid, '#38bdf8'],
-              ['Appreciating', appreciating, '#34d399'],
-              ['Investments', investments, '#a78bfa'],
-              ['Depreciating', depreciating, '#fbbf24'],
-            ].map(([l, v, c]) => (
-              <Grid key={String(l)} size={{ xs: 6 }}>
-                <Paper elevation={0} sx={{ p: 1.5, textAlign: 'center', bgcolor: 'var(--surface-card)', border: '1px solid var(--border-main)' }}>
-                  <Typography variant="caption" sx={{ display: 'block', fontSize: 10, color: String(c) }}>{l}</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 600, fontSize: 12 }}>₹{fmtINR(Number(v))}</Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Total: <Box component="span" sx={{ fontWeight: 600, color: 'text.primary' }}>₹{fmtINR(liquid + appreciating + investments + depreciating)}</Box>
-          </Typography>
-          <TextField label="Note (optional)" size="small" fullWidth placeholder="What happened this period?" value={note} onChange={e => setNote(e.target.value)} />
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setShowModal(false)} color="inherit">Cancel</Button>
-          <Button onClick={handleSave} variant="contained" disabled={saving}>
-            {saving ? <CircularProgress size={16} color="inherit" /> : 'Save'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <SaveSnapshotDialog open={showModal} onClose={() => setShowModal(false)} />
     </Box>
   )
 }

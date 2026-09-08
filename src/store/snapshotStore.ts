@@ -5,8 +5,9 @@ import { fetchSnapshots, upsertSnapshot, deleteSnapshot } from '../services/fire
 interface SnapshotState {
   snapshots: Snapshot[]
   loading: boolean
+  loaded: boolean
   load: () => Promise<void>
-  checkTodayExists: () => boolean
+  checkTodayExists: () => Promise<boolean>
   saveSnapshot: (
     liquid: number,
     appreciating: number,
@@ -20,21 +21,29 @@ interface SnapshotState {
   removeSnapshot: (id: string) => Promise<void>
 }
 
+// Local calendar date, not UTC — toISOString() would file a snapshot saved
+// before 05:30 IST under the previous day.
 function todayIso() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 }
 
 export const useSnapshotStore = create<SnapshotState>((set, get) => ({
   snapshots: [],
   loading: false,
+  loaded: false,
 
   load: async () => {
     set({ loading: true })
     const snapshots = await fetchSnapshots() as Snapshot[]
-    set({ snapshots, loading: false })
+    set({ snapshots, loading: false, loaded: true })
   },
 
-  checkTodayExists: () => {
+  // Async and self-loading: callers may not have loaded the store, and an
+  // unloaded store must not be mistaken for "no snapshot exists today".
+  checkTodayExists: async () => {
+    if (!get().loaded) await get().load()
     const today = todayIso()
     return get().snapshots.some(s => s.date === today)
   },
@@ -43,11 +52,8 @@ export const useSnapshotStore = create<SnapshotState>((set, get) => ({
     const today = todayIso()
     const total = liquid + appreciating + investments + depreciating
 
-    let existing = get().snapshots
-    if (existing.length === 0) {
-      existing = await fetchSnapshots() as Snapshot[]
-      set({ snapshots: existing })
-    }
+    if (!get().loaded) await get().load()
+    const existing = get().snapshots
 
     const existingToday = existing.find(s => s.date === today)
 
