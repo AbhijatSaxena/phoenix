@@ -6,14 +6,12 @@ import {
 } from '@mui/material'
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore'
 import ExpandLessIcon from '@mui/icons-material/ExpandLess'
-import CameraAltOutlinedIcon from '@mui/icons-material/CameraAltOutlined'
 import AddIcon from '@mui/icons-material/Add'
 import { useDashboardStore, computeNetInr } from '../store/dashboardStore'
 import { useRatesStore } from '../store/ratesStore'
 import type { Account, Category } from '../types'
 import { fmtINR, fmtCurrency } from '../lib/fmt'
 import { confirm } from '../components/ConfirmDialog'
-import SaveSnapshotDialog from '../components/SaveSnapshotDialog'
 import { useForm } from 'react-hook-form'
 import { useIsReadOnly } from '../store/authStore'
 
@@ -56,8 +54,6 @@ export default function AccountsPage() {
   const [addCad, setAddCad] = useState('')
   const [addInr, setAddInr] = useState('')
   const [addSaving, setAddSaving] = useState(false)
-
-  const [showSnapshotModal, setShowSnapshotModal] = useState(false)
 
   const { register, handleSubmit, reset } = useForm<EditForm>()
 
@@ -138,14 +134,9 @@ export default function AccountsPage() {
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h6" sx={{ fontWeight: 700 }}>Accounts</Typography>
         {!isReadOnly && (
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button variant="outlined" size="small" startIcon={<CameraAltOutlinedIcon />} onClick={() => setShowSnapshotModal(true)}>
-              Save Snapshot
-            </Button>
-            <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
-              Add Account
-            </Button>
-          </Box>
+          <Button variant="outlined" size="small" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
+            Add Account
+          </Button>
         )}
       </Box>
 
@@ -230,8 +221,6 @@ export default function AccountsPage() {
           </Collapse>
         </Paper>
       ))}
-
-      <SaveSnapshotDialog open={showSnapshotModal} onClose={() => setShowSnapshotModal(false)} />
 
       {/* Add Account dialog */}
       <Dialog open={addOpen} onClose={() => setAddOpen(false)} maxWidth="xs" fullWidth>
