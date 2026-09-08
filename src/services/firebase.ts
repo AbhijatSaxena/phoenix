@@ -278,6 +278,22 @@ export async function deleteLink(id: string) {
   await deleteDoc(doc(db, 'links', id))
 }
 
+// ─── Affordability ───────────────────────────────────────────────────────────
+
+export async function fetchAffordabilityPlans() {
+  const snap = await getDocs(query(collection(db, 'affordability'), orderBy('order')))
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+}
+
+export async function saveAffordabilityPlan(plan: Record<string, unknown>) {
+  const { id, ...data } = plan
+  await setDoc(doc(db, 'affordability', id as string), data)
+}
+
+export async function deleteAffordabilityPlan(id: string) {
+  await deleteDoc(doc(db, 'affordability', id))
+}
+
 // ─── Handover ────────────────────────────────────────────────────────────────
 
 export async function fetchHandoverNotes() {

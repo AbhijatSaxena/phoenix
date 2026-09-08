@@ -118,6 +118,27 @@ export interface QuickLink {
   order: number
 }
 
+// ─── Affordability ───────────────────────────────────────────────────────────
+
+export interface AffordabilityAllocation {
+  accountId: string
+  percent: number   // 0–100, share of that account's *current* value
+}
+
+/**
+ * A hypothetical funding plan. Allocations never mutate the underlying
+ * accounts — they only ask "if I pulled this share from each, what would
+ * I cover?" Contributions are recomputed from live balances on every render.
+ */
+export interface AffordabilityPlan {
+  id: string
+  name: string
+  target: number    // INR
+  allocations: AffordabilityAllocation[]
+  order: number
+  updatedAt?: number
+}
+
 // ─── Handover ────────────────────────────────────────────────────────────────
 
 export interface HandoverNote {
