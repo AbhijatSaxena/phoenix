@@ -19,7 +19,6 @@ dist/
 
 # Local Claude Code working files
 .claude/
-CLAUDE.md
 
 # OS
 .DS_Store
