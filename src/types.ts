@@ -13,6 +13,36 @@ export interface Account {
   updatedAt?: number  // epoch ms, set on every edit
   /** Computed from Property / Zerodha / Car pages. Marks it as read-only in UI. */
   derived?: 'regent' | 'zerodha' | 'subaruCar'
+  /**
+   * Balance is written by the sync worker (functions/). Presence locks the
+   * amount fields in the UI; the user only picks the provider.
+   */
+  sync?: AccountSync
+}
+
+/** Must match `SyncProvider` in functions/src/checker.ts. Frozen once used. */
+export type SyncProvider = 'kraken' | 'cryptocom' | 'robinhood'
+
+export const SYNC_PROVIDERS: { key: SyncProvider; label: string }[] = [
+  { key: 'kraken',    label: 'Kraken' },
+  { key: 'cryptocom', label: 'Crypto.com' },
+  { key: 'robinhood', label: 'Robinhood' },
+]
+
+export interface AccountSync {
+  provider: SyncProvider
+  at?: number       // epoch ms of last successful write
+  ok?: boolean
+  error?: string
+}
+
+/** One row of `meta/sync`, keyed by checker id. Written by functions/src/apply.ts. */
+export interface SyncStatus {
+  label: string
+  at: number
+  ok: boolean
+  error?: string
+  durationMs: number
 }
 
 export interface Rates {

@@ -16,6 +16,8 @@ import {
   Timestamp,
 } from 'firebase/firestore'
 import { getAuth } from 'firebase/auth'
+import { getFunctions, httpsCallable } from 'firebase/functions'
+import type { SyncStatus } from '../types'
 
 const firebaseConfig = {
   apiKey:            import.meta.env.VITE_FIREBASE_API_KEY,
@@ -29,6 +31,7 @@ const firebaseConfig = {
 const app  = initializeApp(firebaseConfig)
 export const db   = getFirestore(app)
 export const auth = getAuth(app)
+const functions = getFunctions(app)
 
 // Enable offline persistence (best-effort; silently fails in some browser configs)
 enableIndexedDbPersistence(db).catch(() => {})
@@ -75,6 +78,20 @@ export async function fetchCachedRates() {
 
 export async function saveCachedRates(rates: { usdInr: number; cadInr: number }) {
   await setDoc(doc(db, 'meta', 'rates'), { ...rates, fetchedAt: Date.now() })
+}
+
+// ─── Sync worker (functions/) ────────────────────────────────────────────────
+
+export async function fetchSyncStatus(): Promise<Record<string, SyncStatus>> {
+  const snap = await getDoc(doc(db, 'meta', 'sync'))
+  return snap.exists() ? (snap.data() as Record<string, SyncStatus>) : {}
+}
+
+/** Triggers every checker immediately. Admin-only (enforced server-side). */
+export async function runSyncNow(): Promise<Record<string, SyncStatus>> {
+  const call = httpsCallable<void, Record<string, SyncStatus>>(functions, 'syncNow')
+  const res = await call()
+  return res.data
 }
 
 // ─── Snapshots ───────────────────────────────────────────────────────────────

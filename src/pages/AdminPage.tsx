@@ -11,12 +11,15 @@ import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import AddIcon from '@mui/icons-material/Add'
 import CheckIcon from '@mui/icons-material/Check'
 import CloseIcon from '@mui/icons-material/Close'
-import { fetchAllSessions, revokeSession, deleteRevokedSessions, fetchPaymentModes, savePaymentModes } from '../services/firebase'
+import PlayArrowIcon from '@mui/icons-material/PlayArrow'
+import { fetchAllSessions, revokeSession, deleteRevokedSessions, fetchPaymentModes, savePaymentModes, fetchSyncStatus, runSyncNow } from '../services/firebase'
 import type { Session } from '../services/firebase'
 import { confirm } from '../components/ConfirmDialog'
 import { useAuthStore } from '../store/authStore'
 import { useLinksStore } from '../store/linksStore'
-import type { QuickLink } from '../types'
+import { useRatesStore } from '../store/ratesStore'
+import { statusHealthy } from '../lib/sync'
+import type { QuickLink, SyncStatus } from '../types'
 
 function parseUA(ua: string): string {
   if (/iPhone|iPad/.test(ua)) return '📱 iOS'
@@ -55,6 +58,11 @@ export default function AdminPage() {
   const [newMode, setNewMode] = useState('')
   const [savingMode, setSavingMode] = useState(false)
 
+  const [syncStatus, setSyncStatus] = useState<Record<string, SyncStatus>>({})
+  const [syncing, setSyncing] = useState(false)
+  const [syncError, setSyncError] = useState<string | null>(null)
+  const loadRates = useRatesStore(s => s.loadRates)
+
   const loadSessions = useCallback(async () => {
     setLoading(true)
     try { setSessions(await fetchAllSessions()) } finally { setLoading(false) }
@@ -63,7 +71,22 @@ export default function AdminPage() {
   useEffect(() => {
     loadSessions(); loadLinks()
     fetchPaymentModes().then(setPayModes)
+    fetchSyncStatus().then(setSyncStatus).catch(() => {})
   }, [loadSessions])
+
+  async function handleSyncNow() {
+    setSyncing(true)
+    setSyncError(null)
+    try {
+      setSyncStatus(await runSyncNow())
+      // FX may have just changed — refresh the in-memory rates the app is using.
+      loadRates()
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSyncing(false)
+    }
+  }
 
   async function handleAddMode() {
     const m = newMode.trim()
@@ -247,6 +270,79 @@ export default function AdminPage() {
       <Typography variant="caption" color="text.disabled" sx={{ display: 'block', mt: 1.5, mb: 4, fontSize: 10 }}>
         Sessions are marked Active if last heartbeat was within 10 minutes. Heartbeat updates every 5 minutes while the app is open.
       </Typography>
+
+      {/* Sync worker status */}
+      <Divider sx={{ mb: 3 }} />
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Box>
+          <Typography variant="h6" sx={{ fontWeight: 700, fontSize: 16, mb: 0.5 }}>Sync</Typography>
+          <Typography variant="caption" color="text.secondary">
+            Checkers run every 4 hours. Balances land on accounts with a sync source; FX rates go to the rate cache.
+          </Typography>
+        </Box>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={handleSyncNow}
+          disabled={syncing}
+          startIcon={syncing ? <CircularProgress size={12} color="inherit" /> : <PlayArrowIcon sx={{ fontSize: 14 }} />}
+          sx={{ fontSize: 11, py: 0.5, whiteSpace: 'nowrap' }}
+        >
+          Run now
+        </Button>
+      </Box>
+      {syncError && (
+        <Typography variant="caption" color="error" sx={{ display: 'block', mb: 1.5 }}>{syncError}</Typography>
+      )}
+      <Paper variant="outlined" sx={{ bgcolor: 'background.paper', border: '1px solid var(--border-main)', borderRadius: 2, overflow: 'hidden', mb: 4 }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow sx={{ '& th': { bgcolor: 'var(--surface-card)', borderColor: 'var(--border-main)', fontSize: 11, color: 'text.secondary', textTransform: 'uppercase', letterSpacing: '0.05em' } }}>
+              <TableCell>Checker</TableCell>
+              <TableCell>Last run (IST)</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell align="right">Took</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {Object.keys(syncStatus).length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} sx={{ textAlign: 'center', py: 3, color: 'text.disabled', borderColor: 'var(--border-main)' }}>
+                  No runs recorded yet.
+                </TableCell>
+              </TableRow>
+            )}
+            {Object.entries(syncStatus).map(([id, s]) => (
+              <TableRow key={id} sx={{ '& td': { borderColor: 'var(--border-main)', fontSize: 12, py: 1.25 } }}>
+                <TableCell>
+                  <Typography variant="body2" sx={{ fontSize: 12, fontWeight: 500 }}>{s.label}</Typography>
+                  <Typography variant="caption" color="text.disabled" sx={{ fontSize: 10 }}>{id}</Typography>
+                </TableCell>
+                <TableCell sx={{ color: 'text.secondary' }}>
+                  {new Date(s.at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: true })}
+                </TableCell>
+                <TableCell>
+                  {!s.ok ? (
+                    <Tooltip title={s.error ?? ''}>
+                      <Chip label="Failed" size="small" color="error" sx={{ height: 18, fontSize: 10 }} />
+                    </Tooltip>
+                  ) : statusHealthy(s) ? (
+                    <Chip label="OK" size="small" color="success" sx={{ height: 18, fontSize: 10 }} />
+                  ) : (
+                    <Chip label="Stale" size="small" color="warning" sx={{ height: 18, fontSize: 10 }} />
+                  )}
+                  {!s.ok && s.error && (
+                    <Typography variant="caption" color="text.disabled" sx={{ display: 'block', fontSize: 10, maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {s.error}
+                    </Typography>
+                  )}
+                </TableCell>
+                <TableCell align="right" sx={{ color: 'text.secondary' }}>{s.durationMs} ms</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </Paper>
 
       {/* Quick Links manager */}
       <Divider sx={{ mb: 3 }} />

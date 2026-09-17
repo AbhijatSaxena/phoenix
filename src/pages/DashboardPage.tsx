@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
 import {
-  Box, Grid, Paper, Typography, CircularProgress,
+  Box, Grid, Paper, Typography, CircularProgress, Alert,
 } from '@mui/material'
+import { Link as RouterLink } from 'react-router-dom'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip as RechartsTooltip, CartesianGrid, ResponsiveContainer,
 } from 'recharts'
@@ -11,6 +12,7 @@ import { useSnapshotStore } from '../store/snapshotStore'
 import type { Category } from '../types'
 import { fmtINR, isoToDisplay } from '../lib/fmt'
 import { useLinksStore } from '../store/linksStore'
+import { accountSyncHealthy, isStale } from '../lib/sync'
 
 const CATEGORY_META: { key: Category; label: string; color: string }[] = [
   { key: 'liquid',       label: 'Liquid',       color: '#38bdf8' },
@@ -39,6 +41,11 @@ export default function DashboardPage() {
   const depreciating = sectionTotal('depreciating')
   const netWorth     = liquid + appreciating + investments + depreciating
 
+  // A silently broken key must not quietly rot net worth: surface any synced
+  // account that failed or hasn't been written recently, and stale FX rates.
+  const unhealthy = accounts.filter(a => a.sync && !accountSyncHealthy(a.sync)).map(a => a.name)
+  const ratesStale = !!rates && isStale(rates.fetchedAt)
+
   const chartData = snapshots.slice(-40).map(s => ({
     date: s.date.slice(5),
     total: Math.round(s.total / 1_00_000),
@@ -65,6 +72,14 @@ export default function DashboardPage() {
 
   return (
     <Box>
+      {(unhealthy.length > 0 || ratesStale) && (
+        <Alert severity="warning" sx={{ mb: 3, fontSize: 12 }}>
+          {unhealthy.length > 0 && <>Sync is failing or stale for: {unhealthy.join(', ')}. </>}
+          {ratesStale && <>FX rates are stale. </>}
+          <RouterLink to="/admin" style={{ color: 'inherit' }}>Check the sync status</RouterLink>.
+        </Alert>
+      )}
+
       {/* Quick Links */}
       {links.length > 0 && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>

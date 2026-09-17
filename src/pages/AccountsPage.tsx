@@ -9,8 +9,10 @@ import ExpandLessIcon from '@mui/icons-material/ExpandLess'
 import AddIcon from '@mui/icons-material/Add'
 import { useDashboardStore, computeNetInr } from '../store/dashboardStore'
 import { useRatesStore } from '../store/ratesStore'
-import type { Account, Category } from '../types'
+import type { Account, Category, SyncProvider } from '../types'
+import { SYNC_PROVIDERS } from '../types'
 import { fmtINR, fmtCurrency } from '../lib/fmt'
+import { isStale } from '../lib/sync'
 import { confirm } from '../components/ConfirmDialog'
 import { useForm } from 'react-hook-form'
 import { useIsReadOnly } from '../store/authStore'
@@ -25,6 +27,12 @@ function timeAgo(ms: number): string {
   if (hours < 24)  return `${hours}h ago`
   if (days  < 7)   return `${days}d ago`
   return new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+function syncColor(sync: NonNullable<Account['sync']>): string {
+  if (sync.ok === false) return 'error.main'
+  if (isStale(sync.at)) return 'warning.main'
+  return 'success.main'
 }
 
 const CATEGORIES: { key: Category; label: string; color: string }[] = [
@@ -43,6 +51,7 @@ export default function AccountsPage() {
 
   const [editing, setEditing] = useState<Account | null>(null)
   const [editCategory, setEditCategory] = useState<Category>('liquid')
+  const [editSync, setEditSync] = useState<SyncProvider | ''>('')
   const [collapsed, setCollapsed] = useState<Record<Category, boolean>>({
     liquid: false, appreciating: false, investments: false, depreciating: false,
   })
@@ -93,6 +102,7 @@ export default function AccountsPage() {
     if (isReadOnly) return
     setEditing(account)
     setEditCategory(account.category)
+    setEditSync(account.sync?.provider ?? '')
     reset({ usd: account.usd, cad: account.cad, inr: account.inr })
   }
 
@@ -110,16 +120,21 @@ export default function AccountsPage() {
 
   async function onSubmitEdit(data: EditForm) {
     if (!editing) return
-    const isDerived = !!editing.derived
-    await update({
-      ...editing,
-      category: editCategory,
-      ...(isDerived ? {} : {
-        usd: isNaN(Number(data.usd)) ? 0 : Number(data.usd),
-        cad: isNaN(Number(data.cad)) ? 0 : Number(data.cad),
-        inr: isNaN(Number(data.inr)) ? 0 : Number(data.inr),
-      }),
-    })
+    const locked = !!editing.derived || !!editSync
+    // Strip `sync` rather than set it undefined — Firestore rejects undefined.
+    const { sync: prevSync, ...rest } = editing
+    const next: Account = { ...rest, category: editCategory }
+    if (editSync) {
+      // Keep the worker's last timestamp/status if the provider is unchanged;
+      // a new provider starts clean so the row reads "waiting for first sync".
+      next.sync = prevSync?.provider === editSync ? prevSync : { provider: editSync }
+    }
+    if (!locked) {
+      next.usd = isNaN(Number(data.usd)) ? 0 : Number(data.usd)
+      next.cad = isNaN(Number(data.cad)) ? 0 : Number(data.cad)
+      next.inr = isNaN(Number(data.inr)) ? 0 : Number(data.inr)
+    }
+    await update(next)
     setEditing(null)
   }
 
@@ -189,6 +204,18 @@ export default function AccountsPage() {
                         {account.derived && (
                           <Typography variant="caption" sx={{ color: 'text.disabled', border: '1px solid var(--border-subtle)', px: 0.5, borderRadius: 0.5, fontSize: 10 }}>
                             {account.derived}
+                          </Typography>
+                        )}
+                        {account.sync && (
+                          <Typography
+                            variant="caption"
+                            title={account.sync.error ?? (account.sync.at ? `Synced ${timeAgo(account.sync.at)}` : 'Waiting for first sync')}
+                            sx={{
+                              px: 0.5, borderRadius: 0.5, fontSize: 10, border: '1px solid',
+                              color: syncColor(account.sync), borderColor: syncColor(account.sync),
+                            }}
+                          >
+                            ⟳ {SYNC_PROVIDERS.find(p => p.key === account.sync!.provider)?.label ?? account.sync.provider}
                           </Typography>
                         )}
                       </Box>
@@ -279,9 +306,30 @@ export default function AccountsPage() {
                 ))}
               </Select>
             </FormControl>
+            {!editing?.derived && (
+              <FormControl size="small" fullWidth>
+                <InputLabel>Sync source</InputLabel>
+                <Select
+                  value={editSync}
+                  label="Sync source"
+                  onChange={e => setEditSync(e.target.value as SyncProvider | '')}
+                >
+                  <MenuItem value="">None — enter manually</MenuItem>
+                  {SYNC_PROVIDERS.map(p => (
+                    <MenuItem key={p.key} value={p.key}>{p.label}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
             {editing?.derived ? (
               <Typography variant="caption" color="text.secondary">
                 Values are computed automatically from {editing.derived} data.
+              </Typography>
+            ) : editSync ? (
+              <Typography variant="caption" color="text.secondary">
+                Balance is fetched by the sync worker every 4 hours.
+                {editing?.sync?.error && <><br />Last error: {editing.sync.error}</>}
+                {editing?.sync?.at && <><br />Last synced {timeAgo(editing.sync.at)}.</>}
               </Typography>
             ) : (
               (['usd', 'cad', 'inr'] as const).map(field => (

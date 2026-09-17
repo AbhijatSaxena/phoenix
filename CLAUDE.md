@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Phoenix — agent guide
 
 Private personal-finance web app for a single household. Tracks net worth across
@@ -5,7 +9,8 @@ multi-currency accounts, monthly expenses, a property loan, a trading portfolio,
 hypothetical funding plans, and a "handover" set of notes for next of kin.
 
 Live at **phoenix-mgmt.web.app**. Single user (admin) plus optional read-only
-viewers. Everything is client-side against Firestore — there is no backend.
+viewers. Everything is client-side against Firestore; the only server-side code
+is the scheduled sync worker in `functions/`.
 
 ---
 
@@ -23,6 +28,22 @@ There are **no tests and no linter**. `npm run build` is the only gate, so run i
 before pushing. TypeScript strict mode catches unused variables (TS6133), which
 is the most common CI break after a refactor.
 
+**Local setup:** copy `.env.example` → `.env` and fill in the `VITE_FIREBASE_*`
+values. `.env` is gitignored. Vite config is stock (`vite.config.ts` is just the
+React plugin).
+
+**`package.json` overrides `rollup` → `@rollup/wasm-node`.** Leave it alone; it
+is what makes `npm ci` work on this machine.
+
+### Deploy pipeline (`.github/workflows/deploy.yml`)
+
+Push to `main` → `npm ci` → `npm run build` (with `VITE_FIREBASE_*` from GitHub
+repo **vars**, `VITE_GROQ_API_KEY` from secrets) → `firebase-tools deploy
+--project phoenix-mgmt`. Because `firebase.json` declares both `hosting` and
+`firestore`, **that deploy also pushes `firestore.rules` and
+`firestore.indexes.json`** — a rules edit goes live on the next push to `main`
+with no separate step.
+
 ---
 
 ## Layout
@@ -35,7 +56,7 @@ src/
   types.ts              every domain interface
   services/
     firebase.ts         ALL Firestore reads/writes live here — one function per operation
-    rates.ts            USD/CAD→INR with Firestore cache (4h TTL) + live API + fallback
+    rates.ts            reads meta/rates (written by functions/); live fetch only if >24h stale
   store/                zustand stores, one per domain
   pages/                one component per route
   components/
@@ -43,10 +64,49 @@ src/
     ConfirmDialog.tsx   imperative `confirm({title, message})` → Promise<boolean>
     SaveSnapshotDialog.tsx  shared snapshot save flow
   lib/fmt.ts            fmtINR, fmtCurrency, fmtDiff, isoToDisplay
+  lib/sync.ts           staleness rules shared by Accounts, Admin, Dashboard
+functions/              Cloud Functions sync worker — see below
 ```
 
 **Convention:** pages never import `firebase/firestore` directly. They go through
 a store, or through a named function in `services/firebase.ts`.
+
+---
+
+## Sync worker (`functions/`)
+
+The one piece of server-side code. A Cloud Function (Node 20, TypeScript,
+**separate `package.json`** — run `npm ci --prefix functions` once) that pulls
+external facts into Firestore so the user stops typing them in:
+
+```
+functions/src/
+  index.ts        syncScheduled (every 4h, IST) + syncNow (callable, admin-only)
+  registry.ts     the ordered list of checkers — add new ones here
+  checker.ts      Checker / CheckResult / SyncStatus types
+  apply.ts        runs each checker in isolation, writes results + meta/sync
+  checkers/fx.ts  USD/INR + CAD/INR → meta/rates
+```
+
+- **Adding a checker = one file in `checkers/` + one line in `registry.ts`**
+  (+ a `defineSecret` if it needs a key). Checkers return `CheckResult[]` and
+  never touch Firestore; `apply.ts` does all writes.
+- A `balance` result is written to every account whose `sync.provider` matches.
+  **The account↔provider mapping lives in data**, set from the Accounts page
+  edit dialog ("Sync source"), never hardcoded.
+- `SyncProvider` in `functions/src/checker.ts` and `src/types.ts` must match.
+  Values are frozen once used (they're stored on account docs).
+- Status per checker goes to `meta/sync`; the Admin page renders it with a
+  "Run now" button, and the Dashboard shows a warning when any synced account
+  or the FX doc is older than 36h (`src/lib/sync.ts`).
+- An account with `sync` set has its amount fields locked in the UI, same as
+  `derived`. The worker sets `updatedAt` on every write.
+- **Deploying functions needs the Blaze plan.** `firebase.json` includes the
+  functions target, so the CI `firebase deploy` on push to `main` deploys them
+  too (and fails outright if Blaze is off). Local test of a checker:
+  `cd functions && npm run build && node -e "require('./lib/checkers/fx').fx.run().then(console.log)"`.
+- The client `services/rates.ts` still has its own live FX fetch, but only as a
+  fallback when `meta/rates` is >24h old.
 
 ---
 
@@ -67,6 +127,7 @@ a store, or through a named function in `services/firebase.ts`.
 | `sessions` | `Session` | one per browser tab; admin can revoke |
 | `users/{uid}` | `{ role: 'admin' \| 'viewer' }` | |
 | `meta/rates`, `meta/paymentModes`, `meta/rowOrder-{CUR}` | | singleton config docs |
+| `meta/sync` | `Record<checkerId, SyncStatus>` | written by `functions/`, read by Admin |
 
 ### ⚠️ Collection names are frozen backend keys
 
@@ -82,6 +143,21 @@ Any authenticated user can **read everything**; only `role: 'admin'` can write.
 A new collection is therefore covered automatically by the catch-all rule — no
 rules change needed when adding a feature. This is deliberate: the Handover
 notes are meant to be readable by a viewer account.
+
+### Viewer role in the UI
+
+Rules are the real enforcement, but the UI must also hide/disable every write
+control for viewers or they get a confusing permission error. The pattern:
+
+- `useIsReadOnly()` from `store/authStore.ts` — `true` unless `role === 'admin'`.
+  Every page that mutates calls it and gates its buttons, inline editors, and
+  drag handles on it (see `AccountsPage`, `ExpensesPage`, `AffordabilityPage`).
+- Nav items in `Layout.tsx` carry `adminOnly`; only `/admin` is `true`. The
+  route itself is not guarded — the nav entry is just hidden.
+- Role comes from `users/{uid}.role`, fetched once in `authStore` on sign-in.
+  `Layout` shows a read-only banner when `role === 'viewer'`.
+
+Any new mutating control must be wired through `useIsReadOnly()`.
 
 ---
 
@@ -217,9 +293,10 @@ Ordered by value. None are fixed.
 
 **Housekeeping**
 15. `fmt.ts:25` `excelDateToISO` — dead code, zero callers.
-16. Unused deps: `@anthropic-ai/sdk`, `@dagrejs/dagre`. `VITE_GROQ_API_KEY` is
-    declared in `.env.example` and `vite-env.d.ts` for a Todo AI feature that
-    does not exist in the router.
+16. Unused deps: `@anthropic-ai/sdk`, `@dagrejs/dagre`, and `firebase-admin`
+    (devDependency, no scripts use it). `VITE_GROQ_API_KEY` is declared in
+    `.env.example`, `vite-env.d.ts`, and injected by `deploy.yml` for a Todo
+    AI feature that no longer exists in the router.
 17. Session docs accumulate — one per browser tab; admin can clear *revoked*
     sessions but not stale ones.
 18. 1.6 MB single bundle (~450 KB gzip). Recharts/MUI would code-split cleanly.

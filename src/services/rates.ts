@@ -1,7 +1,10 @@
 import { fetchCachedRates, saveCachedRates } from './firebase'
 import type { Rates } from '../types'
 
-const CACHE_TTL_MS = 4 * 60 * 60 * 1000 // 4 hours
+// The sync worker (functions/checkers/fx.ts) refreshes meta/rates every 4h.
+// The client trusts that doc for a full day so a few missed worker runs never
+// trigger a browser-side fetch; the live path below is only a safety net.
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000
 
 export async function getExchangeRates(): Promise<Rates> {
   let stale: Rates | null = null
