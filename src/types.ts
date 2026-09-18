@@ -21,13 +21,12 @@ export interface Account {
 }
 
 /** Must match `SyncProvider` in functions/src/checker.ts. Frozen once used. */
-export type SyncProvider = 'kraken' | 'krakenFutures' | 'cryptocom' | 'robinhood'
+export type SyncProvider = 'kraken' | 'cryptocom' | 'robinhood'
 
 export const SYNC_PROVIDERS: { key: SyncProvider; label: string }[] = [
-  { key: 'kraken',        label: 'Kraken (spot)' },
-  { key: 'krakenFutures', label: 'Kraken Futures' },
-  { key: 'cryptocom',     label: 'Crypto.com' },
-  { key: 'robinhood',     label: 'Robinhood' },
+  { key: 'kraken',    label: 'Kraken' },
+  { key: 'cryptocom', label: 'Crypto.com' },
+  { key: 'robinhood', label: 'Robinhood' },
 ]
 
 export interface AccountSync {

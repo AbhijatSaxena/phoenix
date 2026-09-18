@@ -86,8 +86,7 @@ functions/src/
   checker.ts      Checker / CheckResult / SyncStatus types
   apply.ts        runs each checker in isolation, writes results + meta/sync
   checkers/fx.ts  USD/INR + CAD/INR → meta/rates
-  checkers/kraken.ts  Spot TradeBalance.eb (all assets valued in USD) → usd
-  checkers/krakenFutures.ts  Futures /accounts flex.portfolioValue (+ USD cash) → usd
+  checkers/kraken.ts  TradeBalance.eb (all assets valued in USD) → usd
 ```
 
 - **Adding a checker = one file in `checkers/` + one line in `registry.ts`**
@@ -96,9 +95,7 @@ functions/src/
   `apply.ts` does all writes.
 - **A secret must exist before deploy**: `npx firebase-tools functions:secrets:set NAME`
   (interactive, run locally). A push to `main` with an unset secret fails CI.
-  Kraken spot: `KRAKEN_API_KEY`, `KRAKEN_API_SECRET`. Kraken Futures is a
-  separate platform with its own read-only key pair:
-  `KRAKEN_FUTURES_API_KEY`, `KRAKEN_FUTURES_API_SECRET`.
+  Kraken: `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` (read-only key).
 - A `balance` result is written to every account whose `sync.provider` matches.
   **The account↔provider mapping lives in data**, set from the Accounts page
   edit dialog ("Sync source"), never hardcoded.

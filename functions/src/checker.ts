@@ -8,7 +8,7 @@
 import type { SecretParam } from 'firebase-functions/params'
 
 /** Identifier stored on an account doc as `sync.provider`. Frozen once used. */
-export type SyncProvider = 'kraken' | 'krakenFutures' | 'cryptocom' | 'robinhood'
+export type SyncProvider = 'kraken' | 'cryptocom' | 'robinhood'
 
 export type CheckResult =
   | { kind: 'rates'; usdInr: number; cadInr: number }
