@@ -5,6 +5,8 @@
  * `registry.ts`, and (if it needs a key) one secret.
  */
 
+import type { SecretParam } from 'firebase-functions/params'
+
 /** Identifier stored on an account doc as `sync.provider`. Frozen once used. */
 export type SyncProvider = 'kraken' | 'cryptocom' | 'robinhood'
 
@@ -18,6 +20,12 @@ export interface Checker {
   id: string
   /** Human label for the Admin table. */
   label: string
+  /**
+   * Secret Manager params this checker reads. index.ts binds the union of all
+   * checkers' secrets to both functions, so a missing secret fails the deploy
+   * loudly rather than the run silently.
+   */
+  secrets?: SecretParam[]
   run(): Promise<CheckResult[]>
 }
 

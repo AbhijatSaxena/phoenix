@@ -7,14 +7,16 @@ import { runAll } from './apply'
 
 initializeApp()
 
+const secrets = checkers.flatMap(c => c.secrets ?? [])
+
 /** Scheduled sync. IST so a run lands at a sane local hour and log times read naturally. */
 export const syncScheduled = onSchedule(
-  { schedule: 'every 4 hours', timeZone: 'Asia/Kolkata', timeoutSeconds: 120 },
+  { schedule: 'every 4 hours', timeZone: 'Asia/Kolkata', timeoutSeconds: 120, secrets },
   async () => { await runAll(checkers) },
 )
 
 /** "Run now" from the Admin page. Admin-only — mirrors the Firestore write rule. */
-export const syncNow = onCall({ timeoutSeconds: 120 }, async (req) => {
+export const syncNow = onCall({ timeoutSeconds: 120, secrets }, async (req) => {
   const uid = req.auth?.uid
   if (!uid) throw new HttpsError('unauthenticated', 'Sign in first')
   const user = await getFirestore().doc(`users/${uid}`).get()

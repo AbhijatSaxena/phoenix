@@ -86,11 +86,16 @@ functions/src/
   checker.ts      Checker / CheckResult / SyncStatus types
   apply.ts        runs each checker in isolation, writes results + meta/sync
   checkers/fx.ts  USD/INR + CAD/INR → meta/rates
+  checkers/kraken.ts  TradeBalance.eb (all assets valued in USD) → usd
 ```
 
 - **Adding a checker = one file in `checkers/` + one line in `registry.ts`**
-  (+ a `defineSecret` if it needs a key). Checkers return `CheckResult[]` and
-  never touch Firestore; `apply.ts` does all writes.
+  (+ `defineSecret`s listed on `checker.secrets`; index.ts binds the union to
+  both functions). Checkers return `CheckResult[]` and never touch Firestore;
+  `apply.ts` does all writes.
+- **A secret must exist before deploy**: `npx firebase-tools functions:secrets:set NAME`
+  (interactive, run locally). A push to `main` with an unset secret fails CI.
+  Kraken: `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` (read-only key).
 - A `balance` result is written to every account whose `sync.provider` matches.
   **The account↔provider mapping lives in data**, set from the Accounts page
   edit dialog ("Sync source"), never hardcoded.
