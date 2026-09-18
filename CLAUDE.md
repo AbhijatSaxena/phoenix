@@ -95,7 +95,12 @@ functions/src/
   `apply.ts` does all writes.
 - **A secret must exist before deploy**: `npx firebase-tools functions:secrets:set NAME`
   (interactive, run locally). A push to `main` with an unset secret fails CI.
-  Kraken: `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` (read-only key).
+  Kraken spot: `KRAKEN_API_KEY`, `KRAKEN_API_SECRET` (read-only key).
+- **Kraken CME futures (Kraken Derivatives US, e.g. `MGCV6` micro gold) has no
+  API** — that balance is a manual account row. A checker for the *offshore*
+  Kraken Futures platform (`futures.kraken.com`, `PF_*` perps) was written and
+  reverted because the user's account is not on that platform; see commit
+  `b1fc414` (`functions/src/checkers/krakenFutures.ts`) if it's ever needed.
 - A `balance` result is written to every account whose `sync.provider` matches.
   **The account↔provider mapping lives in data**, set from the Accounts page
   edit dialog ("Sync source"), never hardcoded.
