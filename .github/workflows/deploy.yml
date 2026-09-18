@@ -35,6 +35,6 @@ jobs:
           VITE_GROQ_API_KEY:                ${{ secrets.VITE_GROQ_API_KEY }}
 
       - name: Deploy to Firebase
-        run: npx firebase-tools deploy --project phoenix-mgmt --non-interactive
+        run: npx firebase-tools deploy --project phoenix-mgmt --non-interactive --force
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}

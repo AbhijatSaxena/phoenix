@@ -75,7 +75,7 @@ a store, or through a named function in `services/firebase.ts`.
 
 ## Sync worker (`functions/`)
 
-The one piece of server-side code. A Cloud Function (Node 20, TypeScript,
+The one piece of server-side code. A Cloud Function (Node 22, TypeScript,
 **separate `package.json`** — run `npm ci --prefix functions` once) that pulls
 external facts into Firestore so the user stops typing them in:
 
